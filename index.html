@@ -7,8 +7,6 @@
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
-  <meta name="spark-tag" content="v6.1.0">
-  <meta name="spark-sha256" content="6a476096672513f1cc15d125f243863934ef99b7ba251da4ce2d3be8b9954c44">
   <title>spark generator</title>
   <style>
     :root {
@@ -112,7 +110,8 @@
       margin: 4px 0 0;
     }
 
-    input[type="text"] {
+    input[type="text"],
+    select {
       width: 100%;
       padding: 8px 10px;
       font: inherit;
@@ -127,6 +126,7 @@
     }
 
     input:focus-visible,
+    select:focus-visible,
     button:focus-visible {
       outline: 3px solid var(--focus);
       outline-offset: 2px;
@@ -247,12 +247,9 @@
 <body>
   <main>
     <h1>spark generator</h1>
-    <p class="lede">Build the command that bootstraps a machine with spark, release <code class="mono"
-        id="tag-inline">(unpublished)</code>. Nothing you type leaves this page.</p>
+    <p class="lede">Build the command that bootstraps a machine with spark. Nothing you type leaves this page.</p>
 
     <p class="warn" id="from-link" role="status" hidden></p>
-    <p class="warn" id="unstamped" role="alert" hidden>This page is the unpublished template: no release tag and hash
-      are stamped into it, so no command is produced.</p>
 
     <section class="card" aria-labelledby="h-inputs">
       <h2 id="h-inputs" style="margin-top:0">Your values</h2>
@@ -275,7 +272,7 @@
       </div>
 
       <div class="field">
-        <label for="f-ref">Branch or release</label>
+        <label for="f-ref">Project branch or release</label>
         <input type="text" id="f-ref" autocomplete="off" autocapitalize="off" spellcheck="false"
           placeholder="blank = newest release; or vX.Y.Z" aria-describedby="h-ref e-ref w-ref">
         <p class="help" id="h-ref">Blank installs the newest release. A tag <code>vX.Y.Z</code> installs that release;
@@ -293,6 +290,19 @@
         <p class="err" id="e-vault" aria-live="polite"></p>
       </div>
 
+      <div class="field">
+        <label for="f-channel">spark version</label>
+        <select id="f-channel" aria-describedby="h-channel w-channel">
+          <option value="main" selected>main (default)</option>
+          <option value="next">next (development)</option>
+        </select>
+        <p class="help" id="h-channel">Which branch of spark itself to download: the newest commit of that branch. This is
+          separate from the project's branch or release above.</p>
+        <p class="warn" id="w-channel" aria-live="polite" hidden>next is the development branch and may be unfinished: use
+          it to try a change, not on a machine you rely on. GitHub can keep serving the previous copy for a few minutes
+          after a push.</p>
+      </div>
+
       <div class="field checks" role="group" aria-label="Options">
         <label><input type="checkbox" id="f-noop"> <span><code>--no-op</code> (skip the 1Password CLI)</span></label>
         <label><input type="checkbox" id="f-plan"> <span><code>--plan</code> (say what would happen; change
@@ -301,8 +311,11 @@
     </section>
 
     <h2 id="h-cmd">Command</h2>
+    <p class="warn" id="unverified">The command downloads the newest <code>spark.sh</code> of the branch you chose and
+      runs it. Nothing pins or checks its contents, so run it only on a machine you are setting up on purpose. For a
+      verified install, download a release and compare its checksum (see the README).</p>
     <p class="warn" id="raw-note" hidden>This page is not being served from its GitHub Pages address, so it cannot tell
-      where the release files live. Replace <code>&lt;this repository raw URL&gt;</code> in the command with the
+      where spark.sh lives. Replace <code>&lt;this repository raw URL&gt;</code> in the command with the
       raw-file URL of the spark repository before running it.</p>
     <p class="status" id="cmd-empty" aria-live="polite">Enter a valid git host and owner to get a command.</p>
     <pre id="cmd" aria-labelledby="h-cmd" tabindex="0" hidden></pre>
@@ -342,15 +355,16 @@ REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
      *  - repo: REPO must match and it must not contain "..".
      *  - ref: TAG => release; else REF must match and it must not contain ".." => branch (development only).
      *  - vault: VAULT must match.
-     *  - rawBase (where the release files are fetched from): RAW_BASE_RE below and no "..".
-     *  - tag must match TAG and sha256 must be 64 lowercase hex, else the page is an unpublished template.
+     *  - rawBase (where spark.sh is fetched from): RAW_BASE_RE below and no "..".
+     *  - channel: exactly 'main' or 'next' (spark's own branches), else buildCommand throws. Nothing is pinned: the command
+     *    downloads the tip of that branch and does not check its contents.
      */
     var SparkLogic = (function () {
       'use strict';
 
       var HTTPS_BASE_RE = /^https:\/\/[A-Za-z0-9][A-Za-z0-9.-]*(:[0-9]{1,5})?\/[A-Za-z0-9._\/-]+$/;
       var RAW_BASE_RE = /^https:\/\/[A-Za-z0-9][A-Za-z0-9.-]*\/[A-Za-z0-9._\/-]+$/;
-      var SHA256_RE = /^[0-9a-f]{64}$/;
+      var CHANNELS = ['main', 'next'];
       var PORT_RE = /:([0-9]{1,5})(?=\/)/;
       var REFUSED_RE = /example\.com|<owner>|<user>/i;
       var GH_PAGES_HOST_RE = /^([a-z0-9-]+)\.github\.io$/;
@@ -358,7 +372,7 @@ REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
       var RAW_HOST = 'https://raw.githubusercontent.com';
       var RAW_PLACEHOLDER = '<this repository raw URL>';
       var FRAGMENT_MAX = 2048;
-      var FRAGMENT_KEYS = ['base', 'repo', 'ref', 'vault', 'noOp', 'plan'];
+      var FRAGMENT_KEYS = ['base', 'repo', 'ref', 'vault', 'channel', 'noOp', 'plan'];
       var REQUIRED_PATTERNS = ['TAG', 'REPO', 'VAULT', 'SSH_URL', 'REF'];
       var loaded = null; // the last set returned by loadPatterns, used when a caller passes none
 
@@ -476,6 +490,10 @@ REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
           }
           if (FRAGMENT_KEYS.indexOf(key) === -1) continue;
           if (Object.prototype.hasOwnProperty.call(out, key)) continue;
+          if (key === 'channel') {
+            if (CHANNELS.indexOf(val) !== -1) out[key] = val;
+            continue;
+          }
           if (key === 'noOp' || key === 'plan') {
             if (val === '1') out[key] = '1';
             continue;
@@ -493,6 +511,7 @@ REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
           var v = str(values[keys[i]]);
           if (v !== '') parts.push(keys[i] + '=' + encodeURIComponent(v));
         }
+        if (values.channel === 'next') parts.push('channel=next');
         if (values.noOp === true || values.noOp === '1') parts.push('noOp=1');
         if (values.plan === true || values.plan === '1') parts.push('plan=1');
         return parts.join('&');
@@ -506,16 +525,16 @@ REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
         return typeof r === 'string' && RAW_BASE_RE.test(r) && r.indexOf('..') === -1;
       }
 
-      // buildCommand(opts[, patterns]); opts: {tag, sha256, rawBase, base, repo, ref, vault, noOp, plan}.
-      // Patterns default to the last loadPatterns() result. Throws on anything invalid.
+      // buildCommand(opts[, patterns]); opts: {channel, rawBase, base, repo, ref, vault, noOp, plan}.
+      // channel is spark's own branch to download, 'main' or 'next' (undefined means 'main'); anything else throws. Nothing is
+      // pinned or compared: the command fetches the tip of that branch. Patterns default to the last loadPatterns() result.
       // opts.rawBasePlaceholder === true emits the fixed placeholder RAW_PLACEHOLDER instead of rawBase
       // (used when the page cannot derive its own raw URL); everything else is still validated.
       function buildCommand(opts, patterns) {
         opts = opts || {};
         patterns = pats(patterns || opts.patterns);
-        var tag = opts.tag, sha = opts.sha256;
-        if (typeof tag !== 'string' || !patterns.TAG.test(tag)) throw new Error('invalid release tag');
-        if (typeof sha !== 'string' || !SHA256_RE.test(sha)) throw new Error('invalid sha256');
+        var channel = opts.channel === undefined ? 'main' : opts.channel;
+        if (CHANNELS.indexOf(channel) === -1) throw new Error('invalid spark branch');
         var raw;
         if (opts.rawBasePlaceholder === true) {
           raw = RAW_PLACEHOLDER;
@@ -535,18 +554,15 @@ REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
         if (opts.noOp === true || opts.noOp === '1') args.push('--no-op');
         if (opts.plan === true || opts.plan === '1') args.push('--plan');
 
-        // Only spark.sh is fetched; it is checked against the sha256 stamped into this page. The digest is computed and
-        // compared here rather than with `-c`: an empty or failed digest can never equal a 64-hex value, so it fails closed.
+        // spark.sh is downloaded to a file first and run only if curl succeeded (-f: an HTTP error is a failure).
         return [
-          "curl -fsSL --proto '=https' --tlsv1.2 -o spark.sh " + shellQuote(raw + '/refs/tags/' + tag + '/spark.sh') + ' &&',
-          '[ "$(if command -v sha256sum >/dev/null 2>&1; then sha256sum spark.sh; else shasum -a 256 spark.sh; fi | cut -d\' \' -f1)" = ' + shellQuote(sha) + ' ] &&',
+          "curl -fsSL --proto '=https' --tlsv1.2 -o spark.sh " + shellQuote(raw + '/refs/heads/' + channel + '/spark.sh') + ' &&',
           args.join(' ')
         ].join('\n');
       }
 
-      // loc: {hostname, pathname}. Returns the raw-file base (the command appends /refs/tags/<tag>/spark.sh) of the repository serving this page, or null.
-      function deriveRawBase(loc, tag) {
-        void tag; // the caller appends /<tag>/spark.sh
+      // loc: {hostname, pathname}. Returns the raw-file base (the command appends /refs/heads/<branch>/spark.sh) of the repository serving this page, or null.
+      function deriveRawBase(loc) {
         if (!loc) return null;
         var hm = GH_PAGES_HOST_RE.exec(str(loc.hostname));
         if (!hm) return null;
@@ -558,9 +574,6 @@ REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
         return rawBaseOk(r) ? r : null;
       }
 
-      function tagOk(tag, patterns) { return typeof tag === 'string' && pats(patterns).TAG.test(tag); }
-      function shaOk(sha) { return typeof sha === 'string' && SHA256_RE.test(sha); }
-
       return {
         loadPatterns: loadPatterns,
         validate: validate,
@@ -569,8 +582,6 @@ REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
         buildCommand: buildCommand,
         deriveRawBase: deriveRawBase,
         shellQuote: shellQuote,
-        tagOk: tagOk,
-        shaOk: shaOk,
         RAW_PLACEHOLDER: RAW_PLACEHOLDER
       };
     })();
@@ -588,31 +599,18 @@ REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
       }
 
       function $(id) { return document.getElementById(id); }
-      function meta(name) {
-        var m = document.querySelector('meta[name="' + name + '"]');
-        return m ? m.getAttribute('content') : '';
-      }
 
-      var TAG = meta('spark-tag');
-      var SHA = meta('spark-sha256');
-      var stamped = L.tagOk(TAG, patterns) && L.shaOk(SHA);
-      var rawBase = L.deriveRawBase({ hostname: location.hostname, pathname: location.pathname }, TAG);
+      var rawBase = L.deriveRawBase({ hostname: location.hostname, pathname: location.pathname });
 
       var f = {
-        base: $('f-base'), repo: $('f-repo'), ref: $('f-ref'), vault: $('f-vault'),
+        base: $('f-base'), repo: $('f-repo'), ref: $('f-ref'), vault: $('f-vault'), channel: $('f-channel'),
         noOp: $('f-noop'), plan: $('f-plan')
       };
       var errEl = { base: $('e-base'), repo: $('e-repo'), ref: $('e-ref'), vault: $('e-vault') };
 
-      if (stamped) {
-        $('tag-inline').textContent = TAG;
-      } else {
-        $('unstamped').hidden = false;
-      }
-
       function values() {
         return {
-          base: f.base.value, repo: f.repo.value, ref: f.ref.value, vault: f.vault.value,
+          base: f.base.value, repo: f.repo.value, ref: f.ref.value, vault: f.vault.value, channel: f.channel.value,
           noOp: f.noOp.checked, plan: f.plan.checked
         };
       }
@@ -635,14 +633,15 @@ REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
           f[k].setAttribute('aria-invalid', msg ? 'true' : 'false');
         }
         $('w-ref').hidden = res.refKind !== 'branch';
+        $('w-channel').hidden = v.channel !== 'next';
 
         $('share').value = pageUrl() + '#' + L.buildFragment(v);
 
         var cmd = '';
-        if (stamped && res.ok) {
+        if (res.ok) {
           try {
             var opts = {
-              tag: TAG, sha256: SHA, base: v.base, repo: v.repo, ref: v.ref, vault: v.vault,
+              channel: v.channel, base: v.base, repo: v.repo, ref: v.ref, vault: v.vault,
               noOp: v.noOp, plan: v.plan
             };
             if (rawBase) opts.rawBase = rawBase; else opts.rawBasePlaceholder = true;
@@ -657,7 +656,6 @@ REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
         $('copy-cmd').disabled = !cmd;
         var empty = $('cmd-empty');
         if (cmd) empty.textContent = '';
-        else if (!stamped) empty.textContent = 'No command: this page is an unpublished template.';
         else empty.textContent = 'Enter a valid git host and owner to get a command.';
         empty.hidden = !!cmd;
         $('copy-cmd-status').textContent = '';
@@ -670,6 +668,7 @@ REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
         f.repo.value = p.repo || '';
         f.ref.value = p.ref || '';
         f.vault.value = p.vault || '';
+        f.channel.value = p.channel === 'next' ? 'next' : 'main';
         f.noOp.checked = p.noOp === '1';
         f.plan.checked = p.plan === '1';
         var any = false;
@@ -714,6 +713,7 @@ REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
         render();
       }
       ['base', 'repo', 'ref', 'vault'].forEach(function (k) { f[k].addEventListener('input', edited); });
+      f.channel.addEventListener('change', edited);
       f.noOp.addEventListener('change', edited);
       f.plan.addEventListener('change', edited);
       $('copy-cmd').addEventListener('click', function () {

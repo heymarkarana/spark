@@ -37,7 +37,9 @@ Also: `SPARK_PRIMARY_USER` (as root), `SPARK_NONINTERACTIVE=1`, `SPARK_SSH_HOST_
 
 ## Trust
 
-`SHA256SUMS` comes from the same repository as `spark.sh`, so it detects a corrupted download, not a compromised repository. The generator page (`index.html`) pins the SHA-256 of each release's `spark.sh`; compare the digest of the file you downloaded with it, not with `SHA256SUMS` alone.
+`SHA256SUMS` comes from the same repository as `spark.sh`, so it detects a corrupted download, not a compromised repository. A release is verified by downloading its tag and comparing the checksum, as in "Run it" above.
+
+The generator page (`index.html`) is a convenience and pins nothing: its command downloads the newest `spark.sh` of the branch you pick (`main`, or `next` for development) and runs it, so you are trusting the repository's current state and TLS to GitHub. Use it for machines you are setting up on purpose; for anything you want verified, use a release.
 
 ## Developing and releasing
 
