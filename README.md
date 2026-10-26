@@ -1,15 +1,15 @@
 # spark
 
-`spark.sh` takes a bare macOS or Ubuntu machine to the point where one repository's own installer takes over. This copy is **v6.1.0**, byte-identical to the `spark.sh` of dotFiles v6.1.0 (SHA-256 `6a476096672513f1cc15d125f243863934ef99b7ba251da4ce2d3be8b9954c44`).
+`spark.sh` takes a bare macOS or Ubuntu machine to the point where one repository's own installer takes over. It is a generic bootstrap: it makes sure the minimum tools are present, optionally installs the 1Password CLI, makes sure the machine has an ssh key for your git host, clones **one** repository and runs that repository's installer. The repository's installer checks everything else it needs. spark is versioned and released on its own; see `CHANGELOG.md`.
 
 ## Run it
 
 Download, verify, run. Never pipe the network straight into a shell when you can avoid it.
 
 ```sh
-curl -fsSL --proto '=https' --tlsv1.2 -O "<this repository>/raw/tag/v6.1.0/spark.sh" -O "<this repository>/raw/tag/v6.1.0/SHA256SUMS"
+curl -fsSL --proto '=https' --tlsv1.2 -O "<this repository>/raw/tag/vX.Y.Z/spark.sh" -O "<this repository>/raw/tag/vX.Y.Z/SHA256SUMS"
 sha256sum -c SHA256SUMS            # macOS: shasum -a 256 -c SHA256SUMS
-bash spark.sh --base https://<forge>/<owner> [--repo dotFiles] [--ref v6.1.0] [installer arguments...]
+bash spark.sh --base https://<forge>/<owner> [--repo dotFiles] [--ref <tag or branch of that repository>] [installer arguments...]
 ```
 
 Run it as your normal user (it uses `sudo` for the few system steps). As root it refuses unless `SPARK_PRIMARY_USER` names the account that is to own everything.
@@ -20,7 +20,7 @@ Run it as your normal user (it uses `sudo` for the few system steps). As root it
 2. Installs the **1Password CLI** from 1Password's own distribution (default yes; `--no-op` skips it) and signs you in on the terminal. Optional: everything works without it, with more typing.
 3. Makes sure this machine has an **ssh key for your git host**: an existing key or agent is used; otherwise the host's key is restored from 1Password, or a new ed25519 key is generated and registered on the forge when a token is available (else the public key is printed for you to paste).
 4. Clones **one** repository (`--repo`, default `dotFiles`) into `/opt/<repo>` at `--ref` (a release tag, verified; unset: the newest release; a branch: development only), over ssh when the key authenticates, else https.
-5. Runs that repository's installer: the command in its `.spark` file, else `./install`. The repository resolves its own dependencies (dotFiles installs Trove, then Beskar, then itself).
+5. Runs that repository's installer: the command in its `.spark` file, else `./install`. The repository resolves and checks its own dependencies and minimums (see `docs/installer-contract.md`).
 
 ## Flags and environment
 
@@ -37,4 +37,8 @@ Also: `SPARK_PRIMARY_USER` (as root), `SPARK_NONINTERACTIVE=1`, `SPARK_SSH_HOST_
 
 ## Trust
 
-`SHA256SUMS` comes from the same repository as `spark.sh`, so it detects a corrupted download, not a compromised repository. The hash of each release is also printed in the dotFiles release notes.
+`SHA256SUMS` comes from the same repository as `spark.sh`, so it detects a corrupted download, not a compromised repository. The generator page (`index.html`) pins the SHA-256 of each release's `spark.sh`; compare the digest of the file you downloaded with it, not with `SHA256SUMS` alone.
+
+## Developing and releasing
+
+Two quick checks, both in seconds: `bash tests/static.sh` (the invariants `spark.sh` must keep: it parses, no `eval` or Homebrew, one sudo wrapper, balanced guard markers, well-formed pins) and `sh tests/run.sh` (the generator page agrees with `spark.sh`). Releasing is a handful of manual steps in `RELEASING.md`. The contract a repository meets to be installed by spark is `docs/installer-contract.md`.
