@@ -1,202 +1,326 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
-<meta name="referrer" content="no-referrer">
-<meta name="spark-tag" content="v6.1.0">
-<meta name="spark-sha256" content="6a476096672513f1cc15d125f243863934ef99b7ba251da4ce2d3be8b9954c44">
-<title>spark generator</title>
-<style>
-:root {
-  --bg: #f7f7f5;
-  --surface: #ffffff;
-  --text: #1c1c1a;
-  --muted: #5d5d58;
-  --border: #d4d4ce;
-  --accent: #1f5fbf;
-  --accent-text: #ffffff;
-  --error: #b3261e;
-  --warn-bg: #fff4d6;
-  --warn-text: #5c4300;
-  --warn-border: #e6c25c;
-  --code-bg: #efefeb;
-  --focus: #1f5fbf;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #161615;
-    --surface: #1f1f1d;
-    --text: #ecece8;
-    --muted: #a3a39c;
-    --border: #3a3a36;
-    --accent: #7fb0ff;
-    --accent-text: #0d1a2e;
-    --error: #ff8a80;
-    --warn-bg: #3a2f10;
-    --warn-text: #ffe2a0;
-    --warn-border: #8a6d1e;
-    --code-bg: #262624;
-    --focus: #7fb0ff;
-  }
-}
-* { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-}
-main { max-width: 46rem; margin: 0 auto; padding: 24px 16px 48px; }
-h1 { font-size: 1.6rem; margin: 0 0 4px; }
-h2 { font-size: 1.15rem; margin: 32px 0 8px; }
-p { margin: 8px 0; }
-.lede { color: var(--muted); margin-bottom: 20px; }
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
-}
-.field { margin-bottom: 16px; }
-.field:last-child { margin-bottom: 0; }
-label { display: block; font-weight: 600; margin-bottom: 4px; }
-.help { color: var(--muted); font-size: 0.9rem; margin: 4px 0 0; }
-input[type="text"] {
-  width: 100%;
-  padding: 8px 10px;
-  font: inherit;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-input[type="text"][aria-invalid="true"] { border-color: var(--error); }
-input:focus-visible, button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.checks { display: flex; flex-wrap: wrap; gap: 8px 24px; }
-.checks label { display: flex; align-items: center; gap: 8px; font-weight: 400; margin: 0; }
-.checks input { width: 18px; height: 18px; margin: 0; }
-.err { color: var(--error); font-size: 0.9rem; margin: 4px 0 0; min-height: 0; }
-.err:empty { display: none; }
-.warn {
-  background: var(--warn-bg);
-  color: var(--warn-text);
-  border: 1px solid var(--warn-border);
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin: 8px 0 0;
-  font-size: 0.95rem;
-}
-.warn[hidden] { display: none; }
-code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9rem; }
-code { background: var(--code-bg); padding: 1px 4px; border-radius: 4px; }
-pre {
-  background: var(--code-bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 12px;
-  margin: 8px 0;
-  overflow-x: auto;
-  white-space: pre;
-}
-.row { display: flex; gap: 8px; align-items: stretch; }
-.row input { flex: 1 1 auto; min-width: 0; }
-button {
-  font: inherit;
-  padding: 8px 14px;
-  border-radius: 6px;
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: var(--accent-text);
-  cursor: pointer;
-  white-space: nowrap;
-}
-button:disabled { opacity: 0.5; cursor: not-allowed; }
-.status { color: var(--muted); font-size: 0.9rem; min-height: 1.5em; margin: 4px 0 0; }
-ul { padding-left: 20px; }
-li { margin: 4px 0; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="spark-tag" content="v6.1.0">
+  <meta name="spark-sha256" content="6a476096672513f1cc15d125f243863934ef99b7ba251da4ce2d3be8b9954c44">
+  <title>spark generator</title>
+  <style>
+    :root {
+      --bg: #f7f7f5;
+      --surface: #ffffff;
+      --text: #1c1c1a;
+      --muted: #5d5d58;
+      --border: #d4d4ce;
+      --accent: #1f5fbf;
+      --accent-text: #ffffff;
+      --error: #b3261e;
+      --warn-bg: #fff4d6;
+      --warn-text: #5c4300;
+      --warn-border: #e6c25c;
+      --code-bg: #efefeb;
+      --focus: #1f5fbf;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #161615;
+        --surface: #1f1f1d;
+        --text: #ecece8;
+        --muted: #a3a39c;
+        --border: #3a3a36;
+        --accent: #7fb0ff;
+        --accent-text: #0d1a2e;
+        --error: #ff8a80;
+        --warn-bg: #3a2f10;
+        --warn-text: #ffe2a0;
+        --warn-border: #8a6d1e;
+        --code-bg: #262624;
+        --focus: #7fb0ff;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+
+    main {
+      max-width: 46rem;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin: 0 0 4px;
+    }
+
+    h2 {
+      font-size: 1.15rem;
+      margin: 32px 0 8px;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    .lede {
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .help {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin: 4px 0 0;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      font: inherit;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    input[type="text"][aria-invalid="true"] {
+      border-color: var(--error);
+    }
+
+    input:focus-visible,
+    button:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 24px;
+    }
+
+    .checks label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 400;
+      margin: 0;
+    }
+
+    .checks input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+    }
+
+    .err {
+      color: var(--error);
+      font-size: 0.9rem;
+      margin: 4px 0 0;
+      min-height: 0;
+    }
+
+    .err:empty {
+      display: none;
+    }
+
+    .warn {
+      background: var(--warn-bg);
+      color: var(--warn-text);
+      border: 1px solid var(--warn-border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin: 8px 0 0;
+      font-size: 0.95rem;
+    }
+
+    .warn[hidden] {
+      display: none;
+    }
+
+    code,
+    pre,
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9rem;
+    }
+
+    code {
+      background: var(--code-bg);
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      margin: 8px 0;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .row input {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    button {
+      font: inherit;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: var(--accent-text);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 0.9rem;
+      min-height: 1.5em;
+      margin: 4px 0 0;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+
+    li {
+      margin: 4px 0;
+    }
+  </style>
 </head>
+
 <body>
-<main>
-  <h1>spark generator</h1>
-  <p class="lede">Build the command that bootstraps a machine with spark, release <code class="mono" id="tag-inline">(unpublished)</code>. Nothing you type leaves this page.</p>
+  <main>
+    <h1>spark generator</h1>
+    <p class="lede">Build the command that bootstraps a machine with spark, release <code class="mono"
+        id="tag-inline">(unpublished)</code>. Nothing you type leaves this page.</p>
 
-  <p class="warn" id="from-link" role="status" hidden></p>
-  <p class="warn" id="unstamped" role="alert" hidden>This page is the unpublished template: no release tag and hash are stamped into it, so no command is produced.</p>
+    <p class="warn" id="from-link" role="status" hidden></p>
+    <p class="warn" id="unstamped" role="alert" hidden>This page is the unpublished template: no release tag and hash
+      are stamped into it, so no command is produced.</p>
 
-  <section class="card" aria-labelledby="h-inputs">
-    <h2 id="h-inputs" style="margin-top:0">Your values</h2>
+    <section class="card" aria-labelledby="h-inputs">
+      <h2 id="h-inputs" style="margin-top:0">Your values</h2>
 
-    <div class="field">
-      <label for="f-base">Git host and owner (required)</label>
-      <input type="text" id="f-base" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://host/owner" aria-describedby="h-base e-base">
-      <p class="help" id="h-base">Either <code>https://host/owner</code> or <code>ssh://git@host/owner</code> (optionally with <code>:port</code>).</p>
-      <p class="err" id="e-base" aria-live="polite"></p>
+      <div class="field">
+        <label for="f-base">Git host and owner (required)</label>
+        <input type="text" id="f-base" autocomplete="off" autocapitalize="off" spellcheck="false"
+          placeholder="https://host/owner" aria-describedby="h-base e-base">
+        <p class="help" id="h-base">Either <code>https://host/owner</code> or <code>ssh://git@host/owner</code>
+          (optionally with <code>:port</code>).</p>
+        <p class="err" id="e-base" aria-live="polite"></p>
+      </div>
+
+      <div class="field">
+        <label for="f-repo">Project</label>
+        <input type="text" id="f-repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="dotFiles"
+          aria-describedby="h-repo e-repo">
+        <p class="help" id="h-repo">The one repository spark clones. Blank means the default, <code>dotFiles</code>.</p>
+        <p class="err" id="e-repo" aria-live="polite"></p>
+      </div>
+
+      <div class="field">
+        <label for="f-ref">Branch or release</label>
+        <input type="text" id="f-ref" autocomplete="off" autocapitalize="off" spellcheck="false"
+          placeholder="blank = newest release; or vX.Y.Z" aria-describedby="h-ref e-ref w-ref">
+        <p class="help" id="h-ref">Blank installs the newest release. A tag <code>vX.Y.Z</code> installs that release;
+          any other name is a branch.</p>
+        <p class="err" id="e-ref" aria-live="polite"></p>
+        <p class="warn" id="w-ref" aria-live="polite" hidden>Branch install (development only): nothing is verified.
+          Leave this blank or name a release tag for a real machine.</p>
+      </div>
+
+      <div class="field">
+        <label for="f-vault">1Password vault (optional)</label>
+        <input type="text" id="f-vault" autocomplete="off" autocapitalize="off" spellcheck="false"
+          placeholder="blank = spark's default" aria-describedby="h-vault e-vault">
+        <p class="help" id="h-vault">Passed as <code>--op-vault</code>.</p>
+        <p class="err" id="e-vault" aria-live="polite"></p>
+      </div>
+
+      <div class="field checks" role="group" aria-label="Options">
+        <label><input type="checkbox" id="f-noop"> <span><code>--no-op</code> (skip the 1Password CLI)</span></label>
+        <label><input type="checkbox" id="f-plan"> <span><code>--plan</code> (say what would happen; change
+            nothing)</span></label>
+      </div>
+    </section>
+
+    <h2 id="h-cmd">Command</h2>
+    <p class="warn" id="raw-note" hidden>This page is not being served from its GitHub Pages address, so it cannot tell
+      where the release files live. Replace <code>&lt;this repository raw URL&gt;</code> in the command with the
+      raw-file URL of the spark repository before running it.</p>
+    <p class="status" id="cmd-empty" aria-live="polite">Enter a valid git host and owner to get a command.</p>
+    <pre id="cmd" aria-labelledby="h-cmd" tabindex="0" hidden></pre>
+    <div class="row">
+      <button type="button" id="copy-cmd" disabled>Copy command</button>
     </div>
+    <p class="status" id="copy-cmd-status" aria-live="polite"></p>
 
-    <div class="field">
-      <label for="f-repo">Project</label>
-      <input type="text" id="f-repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="dotFiles" aria-describedby="h-repo e-repo">
-      <p class="help" id="h-repo">The one repository spark clones. Blank means the default, <code>dotFiles</code>.</p>
-      <p class="err" id="e-repo" aria-live="polite"></p>
+    <h2>Shareable link</h2>
+    <p class="help">The values travel after <code>#</code>, which browsers never send to a server.</p>
+    <div class="row">
+      <input type="text" id="share" readonly aria-label="Shareable link to this page with your values">
+      <button type="button" id="copy-share">Copy link</button>
     </div>
+    <p class="status" id="copy-share-status" aria-live="polite"></p>
+  </main>
 
-    <div class="field">
-      <label for="f-ref">Branch or release</label>
-      <input type="text" id="f-ref" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="blank = newest release; or vX.Y.Z" aria-describedby="h-ref e-ref w-ref">
-      <p class="help" id="h-ref">Blank installs the newest release. A tag <code>vX.Y.Z</code> installs that release; any other name is a branch.</p>
-      <p class="err" id="e-ref" aria-live="polite"></p>
-      <p class="warn" id="w-ref" aria-live="polite" hidden>Branch install (development only): nothing is verified. Leave this blank or name a release tag for a real machine.</p>
-    </div>
-
-    <div class="field">
-      <label for="f-vault">1Password vault (optional)</label>
-      <input type="text" id="f-vault" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="blank = spark's default" aria-describedby="h-vault e-vault">
-      <p class="help" id="h-vault">Passed as <code>--op-vault</code>.</p>
-      <p class="err" id="e-vault" aria-live="polite"></p>
-    </div>
-
-    <div class="field checks" role="group" aria-label="Options">
-      <label><input type="checkbox" id="f-noop"> <span><code>--no-op</code> (skip the 1Password CLI)</span></label>
-      <label><input type="checkbox" id="f-plan"> <span><code>--plan</code> (say what would happen; change nothing)</span></label>
-    </div>
-  </section>
-
-  <h2 id="h-cmd">Command</h2>
-  <p class="warn" id="raw-note" hidden>This page is not being served from its GitHub Pages address, so it cannot tell where the release files live. Replace <code>&lt;this repository raw URL&gt;</code> in the command with the raw-file URL of the spark repository before running it.</p>
-  <p class="status" id="cmd-empty" aria-live="polite">Enter a valid git host and owner to get a command.</p>
-  <pre id="cmd" aria-labelledby="h-cmd" tabindex="0" hidden></pre>
-  <div class="row">
-    <button type="button" id="copy-cmd" disabled>Copy command</button>
-  </div>
-  <p class="status" id="copy-cmd-status" aria-live="polite"></p>
-
-  <h2>Shareable link</h2>
-  <p class="help">The values travel after <code>#</code>, which browsers never send to a server.</p>
-  <div class="row">
-    <input type="text" id="share" readonly aria-label="Shareable link to this page with your values">
-    <button type="button" id="copy-share">Copy link</button>
-  </div>
-  <p class="status" id="copy-share-status" aria-live="polite"></p>
-
-  <h2>How it works</h2>
-  <ul>
-    <li>The command downloads <code>spark.sh</code> of the pinned release <code class="mono" id="tag-how">(unpublished)</code> and checks it against the SHA-256 shown on this page, which was stamped in when the page was published. Only then does it run <code>bash spark.sh</code> with your values as flags. A failed download, or a corrupted or swapped file, stops it before spark runs.</li>
-    <li>Every value is a plain command-line flag. The script fetched is always the same tagged file; nothing is customised for you, and there is no redirect.</li>
-    <li>The expected SHA-256 of <code>spark.sh</code>: <code class="mono" id="sha-how">(unpublished)</code>. The same hash is printed in the release notes, if you want to compare it independently.</li>
-  </ul>
-  <h2>What it does not do</h2>
-  <ul>
-    <li>This page comes from the same repository as <code>spark.sh</code>, so the hash check refuses a corrupted or swapped download but does not protect against a compromised repository.</li>
-    <li>This page never sends your input anywhere: no network requests, no cookies, no storage. The shareable link keeps your values after <code>#</code> because URL fragments are not sent to servers.</li>
-    <li>A branch install is not verified at all. It is for development and testing only.</li>
-  </ul>
-</main>
-
-<script type="text/plain" id="spark-patterns">
+  <script type="text/plain" id="spark-patterns">
 TAG=^v[0-9]+\.[0-9]+\.[0-9]+$
 REPO=^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$
 VAULT=^[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}$
@@ -204,406 +328,407 @@ SSH_URL=^ssh://([A-Za-z0-9_][A-Za-z0-9._-]{0,63}@)?([A-Za-z0-9][A-Za-z0-9.-]{0,2
 REF=^[A-Za-z0-9][A-Za-z0-9._/-]*$
 </script>
 
-<script id="spark-logic">
-/*
- * Pure logic: no DOM, no globals besides SparkLogic. The patterns above are byte-identical to spark.sh.
- *
- * Page-only rules, applied on top of those patterns (each makes the page stricter than spark, never looser):
- *  - base: one trailing "/" is stripped first (as spark does). Only https and ssh bases are offered (no local
- *    path, no scp-style). No "..", and none of the placeholders spark refuses
- *    (REFUSED_RE: the documentation domain, "<owner>", "<user>").
- *  - ssh base: SSH_URL must match; no "::"; port, if given, is 1..65535 after dropping leading zeros.
- *  - https base: must match HTTPS_BASE_RE below (host, optional port, a path; no credentials, no query);
- *    port 1..65535.
- *  - repo: REPO must match and it must not contain "..".
- *  - ref: TAG => release; else REF must match and it must not contain ".." => branch (development only).
- *  - vault: VAULT must match.
- *  - rawBase (where the release files are fetched from): RAW_BASE_RE below and no "..".
- *  - tag must match TAG and sha256 must be 64 lowercase hex, else the page is an unpublished template.
- */
-var SparkLogic = (function () {
-  'use strict';
+  <script id="spark-logic">
+    /*
+     * Pure logic: no DOM, no globals besides SparkLogic. The patterns above are byte-identical to spark.sh.
+     *
+     * Page-only rules, applied on top of those patterns (each makes the page stricter than spark, never looser):
+     *  - base: one trailing "/" is stripped first (as spark does). Only https and ssh bases are offered (no local
+     *    path, no scp-style). No "..", and none of the placeholders spark refuses
+     *    (REFUSED_RE: the documentation domain, "<owner>", "<user>").
+     *  - ssh base: SSH_URL must match; no "::"; port, if given, is 1..65535 after dropping leading zeros.
+     *  - https base: must match HTTPS_BASE_RE below (host, optional port, a path; no credentials, no query);
+     *    port 1..65535.
+     *  - repo: REPO must match and it must not contain "..".
+     *  - ref: TAG => release; else REF must match and it must not contain ".." => branch (development only).
+     *  - vault: VAULT must match.
+     *  - rawBase (where the release files are fetched from): RAW_BASE_RE below and no "..".
+     *  - tag must match TAG and sha256 must be 64 lowercase hex, else the page is an unpublished template.
+     */
+    var SparkLogic = (function () {
+      'use strict';
 
-  var HTTPS_BASE_RE = /^https:\/\/[A-Za-z0-9][A-Za-z0-9.-]*(:[0-9]{1,5})?\/[A-Za-z0-9._\/-]+$/;
-  var RAW_BASE_RE = /^https:\/\/[A-Za-z0-9][A-Za-z0-9.-]*\/[A-Za-z0-9._\/-]+$/;
-  var SHA256_RE = /^[0-9a-f]{64}$/;
-  var PORT_RE = /:([0-9]{1,5})(?=\/)/;
-  var REFUSED_RE = /example\.com|<owner>|<user>/i;
-  var GH_PAGES_HOST_RE = /^([a-z0-9-]+)\.github\.io$/;
-  var SEGMENT_RE = /^[A-Za-z0-9._-]+$/;
-  var RAW_HOST = 'https://raw.githubusercontent.com';
-  var RAW_PLACEHOLDER = '<this repository raw URL>';
-  var FRAGMENT_MAX = 2048;
-  var FRAGMENT_KEYS = ['base', 'repo', 'ref', 'vault', 'noOp', 'plan'];
-  var REQUIRED_PATTERNS = ['TAG', 'REPO', 'VAULT', 'SSH_URL', 'REF'];
-  var loaded = null; // the last set returned by loadPatterns, used when a caller passes none
+      var HTTPS_BASE_RE = /^https:\/\/[A-Za-z0-9][A-Za-z0-9.-]*(:[0-9]{1,5})?\/[A-Za-z0-9._\/-]+$/;
+      var RAW_BASE_RE = /^https:\/\/[A-Za-z0-9][A-Za-z0-9.-]*\/[A-Za-z0-9._\/-]+$/;
+      var SHA256_RE = /^[0-9a-f]{64}$/;
+      var PORT_RE = /:([0-9]{1,5})(?=\/)/;
+      var REFUSED_RE = /example\.com|<owner>|<user>/i;
+      var GH_PAGES_HOST_RE = /^([a-z0-9-]+)\.github\.io$/;
+      var SEGMENT_RE = /^[A-Za-z0-9._-]+$/;
+      var RAW_HOST = 'https://raw.githubusercontent.com';
+      var RAW_PLACEHOLDER = '<this repository raw URL>';
+      var FRAGMENT_MAX = 2048;
+      var FRAGMENT_KEYS = ['base', 'repo', 'ref', 'vault', 'noOp', 'plan'];
+      var REQUIRED_PATTERNS = ['TAG', 'REPO', 'VAULT', 'SSH_URL', 'REF'];
+      var loaded = null; // the last set returned by loadPatterns, used when a caller passes none
 
-  function pats(p) {
-    var r = p || loaded;
-    if (!r) throw new Error('patterns not loaded');
-    return r;
-  }
+      function pats(p) {
+        var r = p || loaded;
+        if (!r) throw new Error('patterns not loaded');
+        return r;
+      }
 
-  function str(v) { return (typeof v === 'string') ? v : ''; }
+      function str(v) { return (typeof v === 'string') ? v : ''; }
 
-  function loadPatterns(text) {
-    var out = {};
-    var lines = str(text).split(/\r?\n/);
-    for (var i = 0; i < lines.length; i++) {
-      var line = lines[i];
-      if (!line) continue;
-      var eq = line.indexOf('=');
-      if (eq < 1) continue;
-      var name = line.slice(0, eq);
-      if (!/^[A-Z_]+$/.test(name) || Object.prototype.hasOwnProperty.call(out, name)) continue;
-      out[name] = new RegExp(line.slice(eq + 1));
-    }
-    for (var j = 0; j < REQUIRED_PATTERNS.length; j++) {
-      if (!out[REQUIRED_PATTERNS[j]]) throw new Error('missing pattern ' + REQUIRED_PATTERNS[j]);
-    }
-    loaded = out;
-    return out;
-  }
+      function loadPatterns(text) {
+        var out = {};
+        var lines = str(text).split(/\r?\n/);
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          if (!line) continue;
+          var eq = line.indexOf('=');
+          if (eq < 1) continue;
+          var name = line.slice(0, eq);
+          if (!/^[A-Z_]+$/.test(name) || Object.prototype.hasOwnProperty.call(out, name)) continue;
+          out[name] = new RegExp(line.slice(eq + 1));
+        }
+        for (var j = 0; j < REQUIRED_PATTERNS.length; j++) {
+          if (!out[REQUIRED_PATTERNS[j]]) throw new Error('missing pattern ' + REQUIRED_PATTERNS[j]);
+        }
+        loaded = out;
+        return out;
+      }
 
-  function portOk(p) {
-    var n = parseInt(p, 10);
-    return n >= 1 && n <= 65535;
-  }
+      function portOk(p) {
+        var n = parseInt(p, 10);
+        return n >= 1 && n <= 65535;
+      }
 
-  // Returns '' when valid, else a short message. `b` already has one trailing "/" stripped.
-  function baseError(b, patterns) {
-    if (b === '') return 'Required: where your repositories live, e.g. https://host/owner.';
-    if (/[\s\x00-\x1f\x7f]/.test(b)) return 'No spaces or control characters.';
-    if (REFUSED_RE.test(b)) return 'Replace the placeholder with your own git host and owner.';
-    if (b.indexOf('..') !== -1) return 'Must not contain "..".';
-    if (b.indexOf('ssh://') === 0) {
-      if (b.indexOf('::') !== -1) return 'Must not contain "::".';
-      var m = patterns.SSH_URL.exec(b);
-      if (!m) return 'Not a valid ssh://[user@]host[:port]/owner address.';
-      if (m[3] && !portOk(m[3].slice(1))) return 'Port must be 1 to 65535.';
-      return '';
-    }
-    if (b.indexOf('https://') === 0) {
-      if (!HTTPS_BASE_RE.test(b)) return 'Not a valid https://host[:port]/owner address (no user, password, query or spaces).';
-      var pm = PORT_RE.exec(b.slice('https://'.length));
-      if (pm && !portOk(pm[1])) return 'Port must be 1 to 65535.';
-      return '';
-    }
-    return 'Must start with https:// or ssh://.';
-  }
+      // Returns '' when valid, else a short message. `b` already has one trailing "/" stripped.
+      function baseError(b, patterns) {
+        if (b === '') return 'Required: where your repositories live, e.g. https://host/owner.';
+        if (/[\s\x00-\x1f\x7f]/.test(b)) return 'No spaces or control characters.';
+        if (REFUSED_RE.test(b)) return 'Replace the placeholder with your own git host and owner.';
+        if (b.indexOf('..') !== -1) return 'Must not contain "..".';
+        if (b.indexOf('ssh://') === 0) {
+          if (b.indexOf('::') !== -1) return 'Must not contain "::".';
+          var m = patterns.SSH_URL.exec(b);
+          if (!m) return 'Not a valid ssh://[user@]host[:port]/owner address.';
+          if (m[3] && !portOk(m[3].slice(1))) return 'Port must be 1 to 65535.';
+          return '';
+        }
+        if (b.indexOf('https://') === 0) {
+          if (!HTTPS_BASE_RE.test(b)) return 'Not a valid https://host[:port]/owner address (no user, password, query or spaces).';
+          var pm = PORT_RE.exec(b.slice('https://'.length));
+          if (pm && !portOk(pm[1])) return 'Port must be 1 to 65535.';
+          return '';
+        }
+        return 'Must start with https:// or ssh://.';
+      }
 
-  function stripBase(b) {
-    b = str(b);
-    return b.charAt(b.length - 1) === '/' ? b.slice(0, -1) : b;
-  }
+      function stripBase(b) {
+        b = str(b);
+        return b.charAt(b.length - 1) === '/' ? b.slice(0, -1) : b;
+      }
 
-  function validate(values, patterns) {
-    values = values || {};
-    patterns = pats(patterns);
-    var errors = {};
-    var base = stripBase(values.base);
-    var repo = str(values.repo);
-    var ref = str(values.ref);
-    var vault = str(values.vault);
-    var refKind = '';
+      function validate(values, patterns) {
+        values = values || {};
+        patterns = pats(patterns);
+        var errors = {};
+        var base = stripBase(values.base);
+        var repo = str(values.repo);
+        var ref = str(values.ref);
+        var vault = str(values.vault);
+        var refKind = '';
 
-    var be = baseError(base, patterns);
-    if (be) errors.base = be;
+        var be = baseError(base, patterns);
+        if (be) errors.base = be;
 
-    if (repo !== '') {
-      if (!patterns.REPO.test(repo)) errors.repo = 'Letters, digits, ".", "_" or "-", starting with a letter or digit; at most 64.';
-      else if (repo.indexOf('..') !== -1) errors.repo = 'Must not contain "..".';
-    }
+        if (repo !== '') {
+          if (!patterns.REPO.test(repo)) errors.repo = 'Letters, digits, ".", "_" or "-", starting with a letter or digit; at most 64.';
+          else if (repo.indexOf('..') !== -1) errors.repo = 'Must not contain "..".';
+        }
 
-    if (ref !== '') {
-      if (patterns.TAG.test(ref)) refKind = 'release';
-      else if (patterns.REF.test(ref) && ref.indexOf('..') === -1) refKind = 'branch';
-      else errors.ref = 'Not a plain branch or tag name (letters, digits, ".", "_", "/", "-"; no "..").';
-    }
+        if (ref !== '') {
+          if (patterns.TAG.test(ref)) refKind = 'release';
+          else if (patterns.REF.test(ref) && ref.indexOf('..') === -1) refKind = 'branch';
+          else errors.ref = 'Not a plain branch or tag name (letters, digits, ".", "_", "/", "-"; no "..").';
+        }
 
-    if (vault !== '' && !patterns.VAULT.test(vault)) {
-      errors.vault = 'Letters, digits, space, ".", "_" or "-", starting with a letter or digit; at most 64.';
-    }
+        if (vault !== '' && !patterns.VAULT.test(vault)) {
+          errors.vault = 'Letters, digits, space, ".", "_" or "-", starting with a letter or digit; at most 64.';
+        }
 
-    var ok = true;
-    for (var k in errors) { if (Object.prototype.hasOwnProperty.call(errors, k)) { ok = false; break; } }
-    return { ok: ok, errors: errors, refKind: refKind };
-  }
+        var ok = true;
+        for (var k in errors) { if (Object.prototype.hasOwnProperty.call(errors, k)) { ok = false; break; } }
+        return { ok: ok, errors: errors, refKind: refKind };
+      }
 
-  function parseFragment(s, patterns) {
-    void patterns; // values are returned untrusted; the caller validates them.
-    var out = {};
-    s = str(s);
-    if (s.length > FRAGMENT_MAX) s = s.slice(0, FRAGMENT_MAX);
-    if (s.charAt(0) === '#') s = s.slice(1);
-    if (s === '') return out;
-    var pairs = s.split('&');
-    for (var i = 0; i < pairs.length; i++) {
-      var p = pairs[i];
-      var eq = p.indexOf('=');
-      var rawKey = eq === -1 ? p : p.slice(0, eq);
-      var rawVal = eq === -1 ? '' : p.slice(eq + 1);
-      var key, val;
+      function parseFragment(s, patterns) {
+        void patterns; // values are returned untrusted; the caller validates them.
+        var out = {};
+        s = str(s);
+        if (s.length > FRAGMENT_MAX) s = s.slice(0, FRAGMENT_MAX);
+        if (s.charAt(0) === '#') s = s.slice(1);
+        if (s === '') return out;
+        var pairs = s.split('&');
+        for (var i = 0; i < pairs.length; i++) {
+          var p = pairs[i];
+          var eq = p.indexOf('=');
+          var rawKey = eq === -1 ? p : p.slice(0, eq);
+          var rawVal = eq === -1 ? '' : p.slice(eq + 1);
+          var key, val;
+          try {
+            key = decodeURIComponent(rawKey);
+            val = decodeURIComponent(rawVal);
+          } catch (e) {
+            continue;
+          }
+          if (FRAGMENT_KEYS.indexOf(key) === -1) continue;
+          if (Object.prototype.hasOwnProperty.call(out, key)) continue;
+          if (key === 'noOp' || key === 'plan') {
+            if (val === '1') out[key] = '1';
+            continue;
+          }
+          out[key] = val;
+        }
+        return out;
+      }
+
+      function buildFragment(values) {
+        values = values || {};
+        var parts = [];
+        var keys = ['base', 'repo', 'ref', 'vault'];
+        for (var i = 0; i < keys.length; i++) {
+          var v = str(values[keys[i]]);
+          if (v !== '') parts.push(keys[i] + '=' + encodeURIComponent(v));
+        }
+        if (values.noOp === true || values.noOp === '1') parts.push('noOp=1');
+        if (values.plan === true || values.plan === '1') parts.push('plan=1');
+        return parts.join('&');
+      }
+
+      function shellQuote(s) {
+        return "'" + String(s).replace(/'/g, "'\\''") + "'";
+      }
+
+      function rawBaseOk(r) {
+        return typeof r === 'string' && RAW_BASE_RE.test(r) && r.indexOf('..') === -1;
+      }
+
+      // buildCommand(opts[, patterns]); opts: {tag, sha256, rawBase, base, repo, ref, vault, noOp, plan}.
+      // Patterns default to the last loadPatterns() result. Throws on anything invalid.
+      // opts.rawBasePlaceholder === true emits the fixed placeholder RAW_PLACEHOLDER instead of rawBase
+      // (used when the page cannot derive its own raw URL); everything else is still validated.
+      function buildCommand(opts, patterns) {
+        opts = opts || {};
+        patterns = pats(patterns || opts.patterns);
+        var tag = opts.tag, sha = opts.sha256;
+        if (typeof tag !== 'string' || !patterns.TAG.test(tag)) throw new Error('invalid release tag');
+        if (typeof sha !== 'string' || !SHA256_RE.test(sha)) throw new Error('invalid sha256');
+        var raw;
+        if (opts.rawBasePlaceholder === true) {
+          raw = RAW_PLACEHOLDER;
+        } else {
+          if (!rawBaseOk(opts.rawBase)) throw new Error('invalid raw base URL');
+          raw = opts.rawBase;
+        }
+        var values = { base: str(opts.base), repo: str(opts.repo), ref: str(opts.ref), vault: str(opts.vault) };
+        if (typeof opts.base !== 'string') throw new Error('base required');
+        var v = validate(values, patterns);
+        if (!v.ok) throw new Error('invalid input: ' + Object.keys(v.errors).join(', '));
+
+        var args = ['bash spark.sh', '--base ' + shellQuote(stripBase(values.base))];
+        if (values.repo) args.push('--repo ' + shellQuote(values.repo));
+        if (values.ref) args.push('--ref ' + shellQuote(values.ref));
+        if (values.vault) args.push('--op-vault ' + shellQuote(values.vault));
+        if (opts.noOp === true || opts.noOp === '1') args.push('--no-op');
+        if (opts.plan === true || opts.plan === '1') args.push('--plan');
+
+        // Only spark.sh is fetched; it is checked against the sha256 stamped into this page. The digest is computed and
+        // compared here rather than with `-c`: an empty or failed digest can never equal a 64-hex value, so it fails closed.
+        return [
+          "curl -fsSL --proto '=https' --tlsv1.2 -o spark.sh " + shellQuote(raw + '/refs/tags/' + tag + '/spark.sh') + ' &&',
+          '[ "$(if command -v sha256sum >/dev/null 2>&1; then sha256sum spark.sh; else shasum -a 256 spark.sh; fi | cut -d\' \' -f1)" = ' + shellQuote(sha) + ' ] &&',
+          args.join(' ')
+        ].join('\n');
+      }
+
+      // loc: {hostname, pathname}. Returns the raw-file base (the command appends /refs/tags/<tag>/spark.sh) of the repository serving this page, or null.
+      function deriveRawBase(loc, tag) {
+        void tag; // the caller appends /<tag>/spark.sh
+        if (!loc) return null;
+        var hm = GH_PAGES_HOST_RE.exec(str(loc.hostname));
+        if (!hm) return null;
+        var seg = str(loc.pathname).split('/')[1] || '';
+        // Only a project-page path /<repo>/... qualifies: not a file name, not a dot or dash name.
+        if (!SEGMENT_RE.test(seg) || seg.indexOf('..') !== -1 || /^[.-]/.test(seg) ||
+          /\.html?$/i.test(seg) || seg === 'spark.sh') return null;
+        var r = RAW_HOST + '/' + hm[1] + '/' + seg;
+        return rawBaseOk(r) ? r : null;
+      }
+
+      function tagOk(tag, patterns) { return typeof tag === 'string' && pats(patterns).TAG.test(tag); }
+      function shaOk(sha) { return typeof sha === 'string' && SHA256_RE.test(sha); }
+
+      return {
+        loadPatterns: loadPatterns,
+        validate: validate,
+        parseFragment: parseFragment,
+        buildFragment: buildFragment,
+        buildCommand: buildCommand,
+        deriveRawBase: deriveRawBase,
+        shellQuote: shellQuote,
+        tagOk: tagOk,
+        shaOk: shaOk,
+        RAW_PLACEHOLDER: RAW_PLACEHOLDER
+      };
+    })();
+  </script>
+
+  <script id="spark-ui">
+    (function () {
+      'use strict';
+      var L = SparkLogic;
+      var patterns;
       try {
-        key = decodeURIComponent(rawKey);
-        val = decodeURIComponent(rawVal);
+        patterns = L.loadPatterns(document.getElementById('spark-patterns').textContent);
       } catch (e) {
-        continue;
-      }
-      if (FRAGMENT_KEYS.indexOf(key) === -1) continue;
-      if (Object.prototype.hasOwnProperty.call(out, key)) continue;
-      if (key === 'noOp' || key === 'plan') {
-        if (val === '1') out[key] = '1';
-        continue;
-      }
-      out[key] = val;
-    }
-    return out;
-  }
-
-  function buildFragment(values) {
-    values = values || {};
-    var parts = [];
-    var keys = ['base', 'repo', 'ref', 'vault'];
-    for (var i = 0; i < keys.length; i++) {
-      var v = str(values[keys[i]]);
-      if (v !== '') parts.push(keys[i] + '=' + encodeURIComponent(v));
-    }
-    if (values.noOp === true || values.noOp === '1') parts.push('noOp=1');
-    if (values.plan === true || values.plan === '1') parts.push('plan=1');
-    return parts.join('&');
-  }
-
-  function shellQuote(s) {
-    return "'" + String(s).replace(/'/g, "'\\''") + "'";
-  }
-
-  function rawBaseOk(r) {
-    return typeof r === 'string' && RAW_BASE_RE.test(r) && r.indexOf('..') === -1;
-  }
-
-  // buildCommand(opts[, patterns]); opts: {tag, sha256, rawBase, base, repo, ref, vault, noOp, plan}.
-  // Patterns default to the last loadPatterns() result. Throws on anything invalid.
-  // opts.rawBasePlaceholder === true emits the fixed placeholder RAW_PLACEHOLDER instead of rawBase
-  // (used when the page cannot derive its own raw URL); everything else is still validated.
-  function buildCommand(opts, patterns) {
-    opts = opts || {};
-    patterns = pats(patterns || opts.patterns);
-    var tag = opts.tag, sha = opts.sha256;
-    if (typeof tag !== 'string' || !patterns.TAG.test(tag)) throw new Error('invalid release tag');
-    if (typeof sha !== 'string' || !SHA256_RE.test(sha)) throw new Error('invalid sha256');
-    var raw;
-    if (opts.rawBasePlaceholder === true) {
-      raw = RAW_PLACEHOLDER;
-    } else {
-      if (!rawBaseOk(opts.rawBase)) throw new Error('invalid raw base URL');
-      raw = opts.rawBase;
-    }
-    var values = { base: str(opts.base), repo: str(opts.repo), ref: str(opts.ref), vault: str(opts.vault) };
-    if (typeof opts.base !== 'string') throw new Error('base required');
-    var v = validate(values, patterns);
-    if (!v.ok) throw new Error('invalid input: ' + Object.keys(v.errors).join(', '));
-
-    var args = ['bash spark.sh', '--base ' + shellQuote(stripBase(values.base))];
-    if (values.repo) args.push('--repo ' + shellQuote(values.repo));
-    if (values.ref) args.push('--ref ' + shellQuote(values.ref));
-    if (values.vault) args.push('--op-vault ' + shellQuote(values.vault));
-    if (opts.noOp === true || opts.noOp === '1') args.push('--no-op');
-    if (opts.plan === true || opts.plan === '1') args.push('--plan');
-
-    // Only spark.sh is fetched; it is checked against the sha256 stamped into this page. The digest is computed and
-    // compared here rather than with `-c`: an empty or failed digest can never equal a 64-hex value, so it fails closed.
-    return [
-      "curl -fsSL --proto '=https' --tlsv1.2 -o spark.sh " + shellQuote(raw + '/refs/tags/' + tag + '/spark.sh') + ' &&',
-      '[ "$(if command -v sha256sum >/dev/null 2>&1; then sha256sum spark.sh; else shasum -a 256 spark.sh; fi | cut -d\' \' -f1)" = ' + shellQuote(sha) + ' ] &&',
-      args.join(' ')
-    ].join('\n');
-  }
-
-  // loc: {hostname, pathname}. Returns the raw-file base (the command appends /refs/tags/<tag>/spark.sh) of the repository serving this page, or null.
-  function deriveRawBase(loc, tag) {
-    void tag; // the caller appends /<tag>/spark.sh
-    if (!loc) return null;
-    var hm = GH_PAGES_HOST_RE.exec(str(loc.hostname));
-    if (!hm) return null;
-    var seg = str(loc.pathname).split('/')[1] || '';
-    // Only a project-page path /<repo>/... qualifies: not a file name, not a dot or dash name.
-    if (!SEGMENT_RE.test(seg) || seg.indexOf('..') !== -1 || /^[.-]/.test(seg) ||
-        /\.html?$/i.test(seg) || seg === 'spark.sh') return null;
-    var r = RAW_HOST + '/' + hm[1] + '/' + seg;
-    return rawBaseOk(r) ? r : null;
-  }
-
-  function tagOk(tag, patterns) { return typeof tag === 'string' && pats(patterns).TAG.test(tag); }
-  function shaOk(sha) { return typeof sha === 'string' && SHA256_RE.test(sha); }
-
-  return {
-    loadPatterns: loadPatterns,
-    validate: validate,
-    parseFragment: parseFragment,
-    buildFragment: buildFragment,
-    buildCommand: buildCommand,
-    deriveRawBase: deriveRawBase,
-    shellQuote: shellQuote,
-    tagOk: tagOk,
-    shaOk: shaOk,
-    RAW_PLACEHOLDER: RAW_PLACEHOLDER
-  };
-})();
-</script>
-
-<script id="spark-ui">
-(function () {
-  'use strict';
-  var L = SparkLogic;
-  var patterns;
-  try {
-    patterns = L.loadPatterns(document.getElementById('spark-patterns').textContent);
-  } catch (e) {
-    return;
-  }
-
-  function $(id) { return document.getElementById(id); }
-  function meta(name) {
-    var m = document.querySelector('meta[name="' + name + '"]');
-    return m ? m.getAttribute('content') : '';
-  }
-
-  var TAG = meta('spark-tag');
-  var SHA = meta('spark-sha256');
-  var stamped = L.tagOk(TAG, patterns) && L.shaOk(SHA);
-  var rawBase = L.deriveRawBase({ hostname: location.hostname, pathname: location.pathname }, TAG);
-
-  var f = {
-    base: $('f-base'), repo: $('f-repo'), ref: $('f-ref'), vault: $('f-vault'),
-    noOp: $('f-noop'), plan: $('f-plan')
-  };
-  var errEl = { base: $('e-base'), repo: $('e-repo'), ref: $('e-ref'), vault: $('e-vault') };
-
-  if (stamped) {
-    $('tag-inline').textContent = TAG;
-    $('tag-how').textContent = TAG;
-    $('sha-how').textContent = SHA;
-  } else {
-    $('unstamped').hidden = false;
-  }
-
-  function values() {
-    return {
-      base: f.base.value, repo: f.repo.value, ref: f.ref.value, vault: f.vault.value,
-      noOp: f.noOp.checked, plan: f.plan.checked
-    };
-  }
-
-  function pageUrl() {
-    var origin = location.origin && location.origin !== 'null' ? location.origin : location.protocol + '//';
-    return origin + location.pathname;
-  }
-
-  function render() {
-    var v = values();
-    var res = L.validate(v, patterns);
-    var keys = ['base', 'repo', 'ref', 'vault'];
-    for (var i = 0; i < keys.length; i++) {
-      var k = keys[i];
-      // An empty required base is only an error once the user has typed something somewhere.
-      var msg = res.errors[k] || '';
-      if (k === 'base' && v.base === '') msg = '';
-      errEl[k].textContent = msg;
-      f[k].setAttribute('aria-invalid', msg ? 'true' : 'false');
-    }
-    $('w-ref').hidden = res.refKind !== 'branch';
-
-    $('share').value = pageUrl() + '#' + L.buildFragment(v);
-
-    var cmd = '';
-    if (stamped && res.ok) {
-      try {
-        var opts = {
-          tag: TAG, sha256: SHA, base: v.base, repo: v.repo, ref: v.ref, vault: v.vault,
-          noOp: v.noOp, plan: v.plan
-        };
-        if (rawBase) opts.rawBase = rawBase; else opts.rawBasePlaceholder = true;
-        cmd = L.buildCommand(opts, patterns);
-      } catch (e) {
-        cmd = '';
-      }
-    }
-    $('raw-note').hidden = !(cmd && !rawBase);
-    $('cmd').textContent = cmd;
-    $('cmd').hidden = !cmd;
-    $('copy-cmd').disabled = !cmd;
-    var empty = $('cmd-empty');
-    if (cmd) empty.textContent = '';
-    else if (!stamped) empty.textContent = 'No command: this page is an unpublished template.';
-    else empty.textContent = 'Enter a valid git host and owner to get a command.';
-    empty.hidden = !!cmd;
-    $('copy-cmd-status').textContent = '';
-  }
-
-  function prefill() {
-    var fromLink = $('from-link');
-    var p = L.parseFragment(location.hash || '', patterns);
-    f.base.value = p.base || '';
-    f.repo.value = p.repo || '';
-    f.ref.value = p.ref || '';
-    f.vault.value = p.vault || '';
-    f.noOp.checked = p.noOp === '1';
-    f.plan.checked = p.plan === '1';
-    var any = false;
-    for (var k in p) { if (Object.prototype.hasOwnProperty.call(p, k)) { any = true; break; } }
-    fromLink.textContent = any ? 'Values were loaded from a link: check them before running the command.' : '';
-    fromLink.hidden = !any;
-    render();
-  }
-
-  function selectNode(node) {
-    try {
-      if (node.select) { node.focus(); node.select(); return; }
-      var sel = window.getSelection();
-      var range = document.createRange();
-      range.selectNodeContents(node);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    } catch (e) { /* nothing more to do */ }
-  }
-
-  function copy(text, node, statusEl) {
-    function fallback() {
-      selectNode(node);
-      var done = false;
-      try { done = document.execCommand('copy'); } catch (e) { done = false; }
-      statusEl.textContent = done ? 'Copied.' : 'Selected: press Ctrl+C or Cmd+C to copy.';
-    }
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function () {
-          statusEl.textContent = 'Copied.';
-        }, fallback);
         return;
       }
-    } catch (e) { /* fall through */ }
-    fallback();
-  }
 
-  function edited() {
-    $('from-link').hidden = true;
-    $('from-link').textContent = '';
-    render();
-  }
-  ['base', 'repo', 'ref', 'vault'].forEach(function (k) { f[k].addEventListener('input', edited); });
-  f.noOp.addEventListener('change', edited);
-  f.plan.addEventListener('change', edited);
-  $('copy-cmd').addEventListener('click', function () {
-    var t = $('cmd').textContent;
-    if (t) copy(t, $('cmd'), $('copy-cmd-status'));
-  });
-  $('copy-share').addEventListener('click', function () {
-    copy($('share').value, $('share'), $('copy-share-status'));
-  });
-  window.addEventListener('hashchange', prefill);
-  prefill();
-})();
-</script>
+      function $(id) { return document.getElementById(id); }
+      function meta(name) {
+        var m = document.querySelector('meta[name="' + name + '"]');
+        return m ? m.getAttribute('content') : '';
+      }
+
+      var TAG = meta('spark-tag');
+      var SHA = meta('spark-sha256');
+      var stamped = L.tagOk(TAG, patterns) && L.shaOk(SHA);
+      var rawBase = L.deriveRawBase({ hostname: location.hostname, pathname: location.pathname }, TAG);
+
+      var f = {
+        base: $('f-base'), repo: $('f-repo'), ref: $('f-ref'), vault: $('f-vault'),
+        noOp: $('f-noop'), plan: $('f-plan')
+      };
+      var errEl = { base: $('e-base'), repo: $('e-repo'), ref: $('e-ref'), vault: $('e-vault') };
+
+      if (stamped) {
+        $('tag-inline').textContent = TAG;
+        $('tag-how').textContent = TAG;
+        $('sha-how').textContent = SHA;
+      } else {
+        $('unstamped').hidden = false;
+      }
+
+      function values() {
+        return {
+          base: f.base.value, repo: f.repo.value, ref: f.ref.value, vault: f.vault.value,
+          noOp: f.noOp.checked, plan: f.plan.checked
+        };
+      }
+
+      function pageUrl() {
+        var origin = location.origin && location.origin !== 'null' ? location.origin : location.protocol + '//';
+        return origin + location.pathname;
+      }
+
+      function render() {
+        var v = values();
+        var res = L.validate(v, patterns);
+        var keys = ['base', 'repo', 'ref', 'vault'];
+        for (var i = 0; i < keys.length; i++) {
+          var k = keys[i];
+          // An empty required base is only an error once the user has typed something somewhere.
+          var msg = res.errors[k] || '';
+          if (k === 'base' && v.base === '') msg = '';
+          errEl[k].textContent = msg;
+          f[k].setAttribute('aria-invalid', msg ? 'true' : 'false');
+        }
+        $('w-ref').hidden = res.refKind !== 'branch';
+
+        $('share').value = pageUrl() + '#' + L.buildFragment(v);
+
+        var cmd = '';
+        if (stamped && res.ok) {
+          try {
+            var opts = {
+              tag: TAG, sha256: SHA, base: v.base, repo: v.repo, ref: v.ref, vault: v.vault,
+              noOp: v.noOp, plan: v.plan
+            };
+            if (rawBase) opts.rawBase = rawBase; else opts.rawBasePlaceholder = true;
+            cmd = L.buildCommand(opts, patterns);
+          } catch (e) {
+            cmd = '';
+          }
+        }
+        $('raw-note').hidden = !(cmd && !rawBase);
+        $('cmd').textContent = cmd;
+        $('cmd').hidden = !cmd;
+        $('copy-cmd').disabled = !cmd;
+        var empty = $('cmd-empty');
+        if (cmd) empty.textContent = '';
+        else if (!stamped) empty.textContent = 'No command: this page is an unpublished template.';
+        else empty.textContent = 'Enter a valid git host and owner to get a command.';
+        empty.hidden = !!cmd;
+        $('copy-cmd-status').textContent = '';
+      }
+
+      function prefill() {
+        var fromLink = $('from-link');
+        var p = L.parseFragment(location.hash || '', patterns);
+        f.base.value = p.base || '';
+        f.repo.value = p.repo || '';
+        f.ref.value = p.ref || '';
+        f.vault.value = p.vault || '';
+        f.noOp.checked = p.noOp === '1';
+        f.plan.checked = p.plan === '1';
+        var any = false;
+        for (var k in p) { if (Object.prototype.hasOwnProperty.call(p, k)) { any = true; break; } }
+        fromLink.textContent = any ? 'Values were loaded from a link: check them before running the command.' : '';
+        fromLink.hidden = !any;
+        render();
+      }
+
+      function selectNode(node) {
+        try {
+          if (node.select) { node.focus(); node.select(); return; }
+          var sel = window.getSelection();
+          var range = document.createRange();
+          range.selectNodeContents(node);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        } catch (e) { /* nothing more to do */ }
+      }
+
+      function copy(text, node, statusEl) {
+        function fallback() {
+          selectNode(node);
+          var done = false;
+          try { done = document.execCommand('copy'); } catch (e) { done = false; }
+          statusEl.textContent = done ? 'Copied.' : 'Selected: press Ctrl+C or Cmd+C to copy.';
+        }
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+              statusEl.textContent = 'Copied.';
+            }, fallback);
+            return;
+          }
+        } catch (e) { /* fall through */ }
+        fallback();
+      }
+
+      function edited() {
+        $('from-link').hidden = true;
+        $('from-link').textContent = '';
+        render();
+      }
+      ['base', 'repo', 'ref', 'vault'].forEach(function (k) { f[k].addEventListener('input', edited); });
+      f.noOp.addEventListener('change', edited);
+      f.plan.addEventListener('change', edited);
+      $('copy-cmd').addEventListener('click', function () {
+        var t = $('cmd').textContent;
+        if (t) copy(t, $('cmd'), $('copy-cmd-status'));
+      });
+      $('copy-share').addEventListener('click', function () {
+        copy($('share').value, $('share'), $('copy-share-status'));
+      });
+      window.addEventListener('hashchange', prefill);
+      prefill();
+    })();
+  </script>
 </body>
+
 </html>
