@@ -927,6 +927,56 @@ _spark_hk_conflict_check(){  # _spark_hk_conflict_check <line>
   # GUARD-END: spark-hostkey-conflict
 }
 
+# The fleet's forge host-key pin from 1Password, when none was given: df_common/DF_FORGE_SSH_HOST_FPR (a fingerprint, not a secret).
+# A new machine then trusts the forge exactly as SPARK_SSH_HOST_FPR would make it, with nothing typed. Absent or malformed: no pin.
+_spark_forge_pin_from_vault(){
+  local fpr=""
+  [[ -z "${SPARK_SSH_HOST_FPR:-}" ]] || return 0
+  _spark_op_signed_in || return 0
+  fpr="$(_spark_op_read df_common DF_FORGE_SSH_HOST_FPR | tr -d '\r\n')" || fpr=""
+  [[ -n "$fpr" ]] || return 0
+  # GUARD: spark-vault-fpr-grammar a pin read from the vault meets the same grammar as SPARK_SSH_HOST_FPR, or it is not used.
+  if ! [[ "$fpr" =~ $_SPARK_RE_FPR ]]; then
+    _warn "df_common/DF_FORGE_SSH_HOST_FPR is not a SHA256:<43 base64 characters> fingerprint: not used as the forge's host-key pin."
+    return 0
+  fi
+  # GUARD-END: spark-vault-fpr-grammar
+  SPARK_SSH_HOST_FPR="$fpr"
+  _ok "forge host-key pin from 1Password (df_common/DF_FORGE_SSH_HOST_FPR)"
+}
+
+# No pin and an unknown forge, with a person at the terminal: show the fingerprints the forge presents and ask (default no). A yes
+# pins the ed25519 key (else the first one shown) for this run, so the strict pin path below writes and keeps it. rc 1 on no.
+_spark_hostkey_confirm(){  # _spark_hostkey_confirm <host> <port> <host-field>
+  local host="$1" port="$2" hk="$3" scan="" line="" fpout="" fp="" _fa="" _fb="" ed="" first="" pick="" ans="" vault="<vault>"
+  # 2>/dev/null: ssh-keyscan prints its banner comments on stderr; stdout carries the keys.
+  scan="$(as_user "$(_spark_seam SPARK_SSH_KEYSCAN_BIN ssh-keyscan)" -T 10 -p "$port" -- "$host" 2>/dev/null)" || scan=""
+  [[ -n "$scan" ]] || return 1
+  _run "${hk} is not known on this machine yet. It presents these host keys:"
+  while IFS= read -r line; do
+    [[ -n "$line" && "$line" != '#'* ]] || continue
+    fpout="$(printf '%s\n' "$line" | as_user_piped ssh-keygen -l -f -)" || continue
+    fp=""; read -r _fa fp _fb <<<"$fpout" || fp=""
+    [[ "$fp" =~ $_SPARK_RE_FPR ]] || continue
+    printf '     %s\n' "$fpout"
+    case "$line" in *" ssh-ed25519 "*) ed="$fp" ;; esac
+    if [[ -z "$first" ]]; then first="$fp"; fi
+  done <<EOF
+$scan
+EOF
+  pick="${ed:-$first}"
+  [[ -n "$pick" ]] || return 1
+  _spark_tty_open
+  # GUARD: spark-hostkey-confirm a first-seen forge key is trusted only on an explicit yes at a terminal (default no), never when nobody is there.
+  ans="$(_spark_ask "Is ${pick} the forge's host key? Say yes only if you checked it with the forge's administrator or on the server [y/N]: ")"
+  case "$ans" in [Yy]|[Yy][Ee][Ss]) ;; *) return 1 ;; esac
+  # GUARD-END: spark-hostkey-confirm
+  SPARK_SSH_HOST_FPR="$pick"
+  _ok "pinned ${pick} for ${hk} (confirmed at the terminal)"
+  if [[ -n "$_SPARK_VAULT" ]]; then vault="$_SPARK_VAULT"; fi
+  _run "so the next machine is not asked, store it once in 1Password: op item edit df_common --vault '${vault}' 'DF_FORGE_SSH_HOST_FPR[text]=${pick}'"
+}
+
 _spark_known_hosts(){  # _spark_known_hosts <host> <port> <hard|soft>
   local host="$1" port="$2" strength="$3" hk scan line fp fpout _fa _fb seen="" matched=0 kh home_kh
   [[ "$_SPARK_HOSTS_DONE" != *" ${host}:${port} "* ]] || return 0
@@ -979,7 +1029,10 @@ $scan
 EOF
     fi
     if (( ! matched )); then
-      _SPARK_NET_REASON="the host key of ${hk} is not trusted yet. Pin it: export SPARK_SSH_HOST_FPR=SHA256:... (the fingerprint of the forge's ssh host key, from its administrator or: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub on the server). spark never accepts a first-seen key on trust."
+      if ! _spark_noninteractive && _spark_hostkey_confirm "$host" "$port" "$hk"; then
+        _spark_known_hosts "$host" "$port" "$strength"; return $?
+      fi
+      _SPARK_NET_REASON="the host key of ${hk} is not trusted yet. Store its fingerprint in 1Password (df_common/DF_FORGE_SSH_HOST_FPR), or Pin it: export SPARK_SSH_HOST_FPR=SHA256:... (the fingerprint of the forge's ssh host key, from its administrator or: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub on the server). spark never accepts a first-seen key on trust."
       if [[ "$strength" == hard ]]; then die3 "$_SPARK_NET_REASON"; fi
       return 1
     fi
@@ -1837,6 +1890,7 @@ main(){
   _bot "spark → ${OPT_ROOT}/${REPO_NAME} (as ${OWNER})"
   ensure_prereqs
   ensure_op
+  _spark_forge_pin_from_vault
   # An existing checkout updates from its own origin (offline, that is a WARN and the checkout at the ref is used): the base and the
   # transport ladder are only for a clone.
   if [[ ! -d "${OPT_ROOT}/${REPO_NAME}/.git" ]]; then
