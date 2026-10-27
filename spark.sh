@@ -54,6 +54,10 @@
 #   --ref <ref>        SPARK_REF           unset: newest release tag on main; vX.Y.Z: that release; anything else: a branch (development only)
 #   --no-op            SPARK_NO_OP=1       do not install the 1Password CLI
 #   --op-vault <name>  SPARK_OP_VAULT      the 1Password vault that holds df_common and df_machine-<host> (needed when several do)
+#   --machine-name <n> SPARK_MACHINE_NAME  this machine's name: the ssh key's comment, the forge key's title and the 1Password item
+#                                          df_machine-<n>. Without it spark ASKS (default: DF_HOSTNAME when set, else `hostname -s`;
+#                                          Enter keeps it) and, unattended, uses a valid default or stops. It is passed on to an installer
+#                                          whose .spark says `args=machine-name`, so it is not asked twice.
 #   --plan                                 print what would happen, change nothing
 #   SPARK_PRIMARY_USER (required as root), SPARK_NONINTERACTIVE=1 (never use a terminal),
 #   SPARK_SSH_HOST_FPR=SHA256:... (the forge's host-key pin: compared exactly, refused on a mismatch, written to a private
@@ -310,6 +314,7 @@ _spark_check_answers(){  # _spark_check_answers <path> → ANSWERS_ABS (absolute
 REPO_NAME=""
 ARG_NO_OP=0
 OP_VAULT=""
+ARG_MACHINE_NAME=""
 _spark_flag_vs_env(){  # _spark_flag_vs_env <flag> <value> <env-name>
   local envval="${!3:-}"
   if [[ -n "$envval" && "$envval" != "$2" ]]; then die3 "${1} '${2}' disagrees with ${3}='${envval}': set one of them."; fi
@@ -329,10 +334,10 @@ check_args(){
         _spark_check_answers "${a#--answers=}"
         INSTALL_ARGS+=("--answers" "$ANSWERS_ABS")
         shift; continue ;;
-      --repo|--base|--ref|--op-vault)
+      --repo|--base|--ref|--op-vault|--machine-name)
         [[ $# -ge 2 && -n "$2" && "$2" != -* ]] || die "${a} needs a value."
         v="$2"; shift 2 ;;
-      --repo=*|--base=*|--ref=*|--op-vault=*)
+      --repo=*|--base=*|--ref=*|--op-vault=*|--machine-name=*)
         v="${a#*=}"; a="${a%%=*}"; shift ;;
       --no-op)
         _spark_flag_vs_env --no-op 1 SPARK_NO_OP; ARG_NO_OP=1; shift; continue ;;
@@ -347,12 +352,17 @@ check_args(){
       --base)     _spark_flag_vs_env --base "$v" SPARK_REPO_BASE;     SPARK_REPO_BASE="$v" ;;
       --ref)      _spark_flag_vs_env --ref "$v" SPARK_REF;            SPARK_REF="$v" ;;
       --op-vault) _spark_flag_vs_env --op-vault "$v" SPARK_OP_VAULT;  OP_VAULT="$v" ;;
+      --machine-name) _spark_flag_vs_env --machine-name "$v" SPARK_MACHINE_NAME; ARG_MACHINE_NAME="$v" ;;
     esac
   done
   REPO_NAME="${REPO_NAME:-${SPARK_REPO:-dotFiles}}"
   # GUARD: spark-repo-grammar the repository name becomes a path component under /opt and a URL path segment: a plain word only.
   [[ "$REPO_NAME" =~ $_SPARK_RE_REPO && "$REPO_NAME" != *..* ]] || die3 "--repo '${REPO_NAME}' is not a plain repository name."
   # GUARD-END: spark-repo-grammar
+  ARG_MACHINE_NAME="${ARG_MACHINE_NAME:-${SPARK_MACHINE_NAME:-}}"
+  # GUARD: spark-machine-name-grammar the name becomes an ssh key comment, a 1Password item name and a forge key title, and may ride to the installer as an argument: a hostname label or nothing.
+  if [[ -n "$ARG_MACHINE_NAME" ]] && ! [[ "$ARG_MACHINE_NAME" =~ $_SPARK_RE_HOSTLABEL ]]; then die3 "--machine-name is not a valid machine name (letters, digits and inner hyphens, 1-63 characters)."; fi
+  # GUARD-END: spark-machine-name-grammar
   OP_VAULT="${OP_VAULT:-${SPARK_OP_VAULT:-}}"
   if [[ -n "$OP_VAULT" ]] && ! [[ "$OP_VAULT" =~ $_SPARK_RE_VAULT ]]; then die3 "--op-vault is not a plain vault name."; fi
   # The installer may need the same answer (dotFiles' resolver reads a token from that vault), so it travels on as a flag.
@@ -1328,13 +1338,39 @@ _spark_check_origin(){  # _spark_check_origin <name> <checkout> <origin>
 _SPARK_HOSTNAME=""
 _SPARK_KEY_PATH=""
 _SPARK_KEY_REGISTERED=0
+_SPARK_MACHINE_NAME_SETTLED=0
 _spark_hostname(){
   [[ -n "$_SPARK_HOSTNAME" ]] && return 0
+  local def ans="" n=0
+  # An explicit --machine-name is the answer: nothing is asked (it was validated with the arguments).
+  if [[ -n "$ARG_MACHINE_NAME" ]]; then
+    _SPARK_HOSTNAME="$ARG_MACHINE_NAME"; _SPARK_MACHINE_NAME_SETTLED=1
+    _ok "machine name: ${_SPARK_HOSTNAME}"
+    return 0
+  fi
+  # The default: DF_HOSTNAME from spark's own environment when it is a valid name, else the short hostname.
   # 2>/dev/null: a host without a name prints an error and an empty name, which the grammar check below refuses.
-  _SPARK_HOSTNAME="$(_spark_seam SPARK_HOSTNAME "$(hostname -s 2>/dev/null)")"
-  # GUARD: spark-hostname-grammar the short hostname becomes a key comment, a 1Password item name and a forge key title: an RFC 1123 label or nothing.
-  [[ "$_SPARK_HOSTNAME" =~ $_SPARK_RE_HOSTLABEL ]] || die3 "the short hostname '$(hostname -s 2>/dev/null)' is not a valid hostname label (letters, digits, inner hyphens, 1-63 characters)."
-  # GUARD-END: spark-hostname-grammar
+  def="$(_spark_seam SPARK_HOSTNAME "$(hostname -s 2>/dev/null)")"
+  if [[ -n "${DF_HOSTNAME:-}" && "${DF_HOSTNAME}" =~ $_SPARK_RE_HOSTLABEL ]]; then def="$DF_HOSTNAME"; fi
+  if ! _spark_noninteractive; then
+    _spark_tty_open
+    while (( n++ < 3 )); do
+      ans="$(_spark_ask "Machine name: it names this host's ssh key and its 1Password item [${def}]: ")"
+      ans="${ans:-$def}"
+      [[ "$ans" =~ $_SPARK_RE_HOSTLABEL ]] && break
+      _warn "'${ans:0:40}' is not a valid machine name (letters, digits and inner hyphens, 1-63 characters)."
+      ans=""
+    done
+    [[ -n "$ans" ]] || die3 "no valid machine name given; pass --machine-name <name>."
+  else
+    # GUARD: spark-hostname-grammar with nobody to ask, a default that is not a name (RFC 1123 label) stops the run: it would become a key comment, a 1Password item name and a forge key title.
+    [[ "$def" =~ $_SPARK_RE_HOSTLABEL ]] || die3 "the short hostname '${def}' is not a valid machine name (letters, digits and inner hyphens, 1-63 characters) and there is no terminal to ask: pass --machine-name <name>."
+    # GUARD-END: spark-hostname-grammar
+    ans="$def"
+    _run "machine name: ${ans} (this machine's hostname; pass --machine-name to choose another)"
+  fi
+  _SPARK_HOSTNAME="$ans"; _SPARK_MACHINE_NAME_SETTLED=1
+  _ok "machine name: ${_SPARK_HOSTNAME}"
 }
 _spark_ssh_dir(){
   _spark_owner_home || die3 "the owner's home directory is not a plain path."
@@ -1673,9 +1709,10 @@ prepare_branch(){
 # ---------------------------------------------------------------------------------------
 _SPARK_INSTALL_CMD=()
 _SPARK_NEEDS=""
+_SPARK_PASS_MACHINE_NAME=0
 _spark_read_contract(){
   local dest="${OPT_ROOT}/${REPO_NAME}" f="${OPT_ROOT}/${REPO_NAME}/.spark" line k v w
-  _SPARK_INSTALL_CMD=(); _SPARK_NEEDS=""
+  _SPARK_INSTALL_CMD=(); _SPARK_NEEDS=""; _SPARK_PASS_MACHINE_NAME=0
   if [[ ! -f "$f" ]]; then
     [[ -x "${dest}/install" ]] || die "${REPO_NAME}: neither a .spark file nor an executable ./install at ${dest}; nothing to run."
     _SPARK_INSTALL_CMD=(./install); return 0
@@ -1691,6 +1728,13 @@ _spark_read_contract(){
         # GUARD-END: spark-contract-grammar
         read -r -a _SPARK_INSTALL_CMD <<<"$v"
         [[ -e "${dest}/${_SPARK_INSTALL_CMD[0]}" ]] || die3 "${REPO_NAME}: .spark names an installer that is not in the repository (${_SPARK_INSTALL_CMD[0]}); refusing." ;;
+      args)
+        # The flags this installer understands from spark. An allow-list, like needs=: today only machine-name.
+        for w in $v; do
+          # GUARD: spark-contract-args-allowlist the flags spark may pass to a repository's installer are an allow-list, not whatever the file says.
+          case "$w" in machine-name) _SPARK_PASS_MACHINE_NAME=1 ;; *) die3 "${REPO_NAME}: .spark args= names '${w}', which spark does not pass (allowed: machine-name); refusing." ;; esac
+          # GUARD-END: spark-contract-args-allowlist
+        done ;;
       needs)
         for w in $v; do
           # GUARD: spark-contract-needs-allowlist the tools a repository may ask spark to install as root are an allow-list, not whatever the file says.
@@ -1720,6 +1764,11 @@ _spark_ensure_needs(){
 run_installer(){
   local dest="${OPT_ROOT}/${REPO_NAME}" rc=0
   local -a unattended=()
+  # The machine's name, once settled here, goes on to an installer that says it takes it (args=machine-name), so it is not asked twice.
+  if (( _SPARK_MACHINE_NAME_SETTLED )); then
+    if (( _SPARK_PASS_MACHINE_NAME )); then INSTALL_ARGS+=("--machine-name" "$_SPARK_HOSTNAME")
+    else _run "machine name ${_SPARK_HOSTNAME} is used for the ssh key; ${REPO_NAME}'s .spark does not take --machine-name, so its installer decides its own"; fi
+  fi
   _run "running the ${REPO_NAME} installer: ${_SPARK_INSTALL_CMD[*]} ${INSTALL_ARGS[*]-}"
   # No terminal (or --non-interactive): tell the installer nobody can answer (Trove's installer honours TROVE_NONINTERACTIVE).
   if _spark_noninteractive; then unattended=(TROVE_NONINTERACTIVE=1); fi
@@ -1846,7 +1895,7 @@ plan_run(){  # --plan: say what spark would do; change nothing
   elif (( ARG_NO_OP )); then _run "would not install the 1Password CLI (--no-op)"
   else _run "would install the 1Password CLI ${_SPARK_OP_VERSION} from 1Password (default yes; --no-op opts out) and sign in on the terminal"; fi
   if [[ "$_SPARK_KEYMODE" != none ]]; then _ok "ssh key source: ${_SPARK_KEYMODE}"
-  else _run "would use ~/.ssh/id_ed25519, else restore it from 1Password (df_machine-<host>), else generate it, and register it on the forge when a token is readable"; fi
+  else _run "would ask for this machine's name (default: ${ARG_MACHINE_NAME:-${DF_HOSTNAME:-$(hostname -s 2>/dev/null)}}; --machine-name sets it), then use ~/.ssh/id_ed25519, else restore it from 1Password (df_machine-<name>), else generate it, and register it on the forge when a token is readable"; fi
   if [[ "$REF_MODE" == release ]]; then want="${REF:-the newest release tag on its main}"; else want="branch ${REF}"; fi
   if [[ -d "${OPT_ROOT}/${REPO_NAME}/.git" ]]; then _run "would update ${REPO_NAME} at ${OPT_ROOT}/${REPO_NAME} to ${want}"
   else _run "would create ${OPT_ROOT}/${REPO_NAME} (owner ${OWNER}) and clone ${REPO_NAME} at ${want} from ${REPO_BASE:-the base found at run time}"; fi

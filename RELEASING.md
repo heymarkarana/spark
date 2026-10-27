@@ -4,7 +4,7 @@ spark is versioned and released on its own. A release is a tag `vX.Y.Z` on `main
 
 ## Day to day
 
-Commit on `next`. Put each change under `## [Unreleased]` in `CHANGELOG.md`. Before committing a change to `spark.sh`, run `bash tests/static.sh` and `sh tests/run.sh`.
+Commit on `next`. Put each change under `## [Unreleased]` in `CHANGELOG.md`. Before committing a change to `spark.sh`, run `bash tests/static.sh`, `bash tests/machine_name.sh` and `sh tests/run.sh`.
 
 ## Trying a change before a release
 
@@ -19,7 +19,7 @@ Clone over https (or from a mirror): a bare machine has no trusted ssh host key 
 
 ## Cutting a release (X.Y.Z)
 
-1. On `next`, tree clean, `bash tests/static.sh` and `sh tests/run.sh` pass.
+1. On `next`, tree clean, `bash tests/static.sh`, `bash tests/machine_name.sh` and `sh tests/run.sh` pass.
 2. Write `X.Y.Z` into `VERSION`. In `CHANGELOG.md` rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` and add a new empty `## [Unreleased]` above it.
 3. Write the checksum: `printf '%s  spark.sh\n' "$(shasum -a 256 spark.sh | cut -d' ' -f1)" > SHA256SUMS`.
 4. `sh tests/run.sh --release` must pass (`VERSION`, `SHA256SUMS`, dated changelog section). Commit it as `release: vX.Y.Z`.

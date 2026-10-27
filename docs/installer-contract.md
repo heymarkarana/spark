@@ -8,7 +8,8 @@ A repository may carry a `.spark` file at its root: `key=value` lines, `#` start
 
 | Key | Rule |
 |---|---|
-| `install=` | argv relative to the repository, split on spaces, no shell: plain words, no `..`, the first word starting with neither `/` nor `-` and existing in the repository. Required when `.spark` exists (else exit 3). |
+| `install=` | argv relative to the repository, split on spaces, no shell: plain words, no `..`, the first word starting with neither `/` nor `-` and existing in the repository. Required when `.spark` exists (else exit 3). **The first word must contain a slash** (`./install.sh`, `bin/tool`): spark runs it as `cd <repo> && env <word> <args>`, and `env` looks a bare name up on `PATH` instead of in the repository (exit 127). |
+| `args=` | flags spark passes on to the installer, from the allow-list `machine-name` (anything else is exit 3). With `args=machine-name`, a machine name spark settled (`--machine-name`, or asked at the terminal) is appended as `--machine-name <name>`, so the installer does not ask again. Without it the name is used for the ssh key only and not passed on. |
 | `needs=` | tools the installer needs on PATH before it starts, from the allow-list `zsh jq git curl gnupg age` (anything else is exit 3). Missing ones are installed with apt on Ubuntu and stop spark on macOS. |
 
 Without `.spark`, spark runs `./install` (it must be executable). A release is a tag `vX.Y.Z` on the repository's `main`, whose `VERSION` file contains exactly `X.Y.Z`; spark verifies both before it installs a release (`--ref` unset or a tag). Any other `--ref` is a branch install: development only, nothing verified.
@@ -20,6 +21,7 @@ Without `.spark`, spark runs `./install` (it must be executable). A release is a
 - **Non-interactive.** Without a terminal, or with `--skip-interview`, `--no-interview` or `SPARK_NONINTERACTIVE=1`, the installer gets `TROVE_NONINTERACTIVE=1`.
 - **A pinned environment.** All `DF_*`, `ATLAS_*`, `TROVE_*`, `BESKAR_*`, `GIT_*`, `SUDO_*` and `SPARK_*` variables are removed; `TROVE_HOME`, `BESKAR_HOME` and `DF_HOME` are pinned under `/opt`; `/usr/local/bin` is on PATH; the operator's `LC_ALL` is restored. `OP_*` and proxy variables pass through. The one `DF_*` value that crosses is `DF_INSTALL_OPTIONAL` (`all`, `none` or a comma-separated list), after a grammar check.
 - **The 1Password CLI.** When it is installed and signed in, `op` works for the installer, and `--op-vault <name>` is passed on.
+- **The machine's name.** The ssh key, the forge key title and the 1Password item `df_machine-<name>` are named after it, so it is settled before the key step: `--machine-name`, or asked at the terminal (default `DF_HOSTNAME` when set, else `hostname -s`; unattended, a valid default is used and an invalid one stops the run). It reaches the installer only through `args=machine-name`.
 - **A trusted forge key.** After the clone, the pinned host key of the forge is kept in the owner's `~/.ssh/known_hosts` as a managed block, so the installer's later ssh calls are strict about the same key.
 
 ## What spark never does

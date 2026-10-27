@@ -31,6 +31,7 @@ Run it as your normal user (it uses `sudo` for the few system steps). As root it
 | `--ref <ref>` | `SPARK_REF` | unset: newest release tag; `vX.Y.Z`: that release; anything else: a branch |
 | `--no-op` | `SPARK_NO_OP=1` | do not install the 1Password CLI |
 | `--op-vault <name>` | `SPARK_OP_VAULT` | the 1Password vault holding `df_common` (only when several do) |
+| `--machine-name <name>` | `SPARK_MACHINE_NAME` | this machine's name: the ssh key's comment, the forge key's title and the 1Password item `df_machine-<name>`. Without it spark asks, offering `DF_HOSTNAME` when set, else the short hostname (Enter keeps it) |
 | `--plan` | | print what would happen, change nothing |
 
 Also: `SPARK_PRIMARY_USER` (as root), `SPARK_NONINTERACTIVE=1`, `SPARK_SSH_HOST_FPR=SHA256:…` (pin the forge's host key; without it only a key already in your `known_hosts` is trusted), `SPARK_SSH_KEY_FILE`, `SPARK_SSH_KEY_OP_REF=op://vault/item/field`, `SPARK_HTTPS_TOKEN_FILE`. The header of `spark.sh` is the full contract. Security refusals exit 3.
@@ -43,4 +44,4 @@ The generator page (`index.html`) is a convenience and pins nothing: its command
 
 ## Developing and releasing
 
-Two quick checks, both in seconds: `bash tests/static.sh` (the invariants `spark.sh` must keep: it parses, no `eval` or Homebrew, one sudo wrapper, balanced guard markers, well-formed pins) and `sh tests/run.sh` (the generator page agrees with `spark.sh`). Releasing is a handful of manual steps in `RELEASING.md`. The contract a repository meets to be installed by spark is `docs/installer-contract.md`.
+Three quick checks, all in seconds: `bash tests/static.sh` (the invariants `spark.sh` must keep: it parses, no `eval` or Homebrew, one sudo wrapper, balanced guard markers, well-formed pins), `bash tests/machine_name.sh` (the machine-name step, run against the real function bodies with a scripted terminal) and `sh tests/run.sh` (the generator page agrees with `spark.sh`). Releasing is a handful of manual steps in `RELEASING.md`. The contract a repository meets to be installed by spark is `docs/installer-contract.md`.
