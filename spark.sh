@@ -10,7 +10,7 @@
 #      universal .pkg from cache.agilebits.com, pinned version and SHA-256, signature chain checked with pkgutil before the one
 #      `sudo installer`; Ubuntu: 1Password's apt repository with its signing key verified against a pinned fingerprint, the
 #      debsig policy, and the source list written last). `--no-op` / SPARK_NO_OP=1 opts out; with a terminal the question is
-#      asked once (Enter = yes) and then `op account add` / `op signin` run on the terminal. Without a terminal it is installed
+#      asked once (Enter = yes) and then `op account add` / `op signin` run on the terminal; a failed sign-in (a typo in the address, email, Secret Key, password or code) is offered again, three attempts at most. Without a terminal it is installed
 #      and not signed in. Never a Homebrew cask.
 #   4. The ssh key for the forge: an existing usable source (a running agent, SPARK_SSH_KEY_FILE, SPARK_SSH_KEY_OP_REF, or
 #      ~/.ssh/id_ed25519) is used; else, when op is signed in, the host's key is RESTORED from its 1Password item
@@ -588,14 +588,28 @@ ensure_op(){
   if _spark_op_signed_in; then _ok "1Password: signed in"; return 0; fi
   if _spark_noninteractive; then _run "1Password: not signed in and no terminal; the forge URL, token and key cannot be read from it"; return 0; fi
   _run "1Password: sign in (op's own prompts follow; Ctrl-C skips it)"
-  # Two steps, as Beskar does: `account add` with the terminal as every descriptor (its enrolment prompts, the
-  # authentication code among them, end early when stdout is captured), then `signin`, whose stdout is the session line.
-  if ! _spark_op_has_account; then
-    _spark_op account add <"$(_spark_seam SPARK_TTY /dev/tty)" >&9 2>&9 || _warn "1Password: adding the account did not complete"
-  fi
-  if _spark_op_has_account; then
-    _spark_op_signin_capture signin || _warn "1Password: sign-in did not complete; continuing without it"
-  fi
+  # Up to three attempts. A typo in the sign-in address, the email, the Secret Key, the password or the code makes `op` stop, and without a
+  # retry the run went on without 1Password and failed much later at the clone of a private forge. An attempt is two steps, as Beskar does:
+  # `account add` with the terminal as every descriptor (its enrolment prompts, the authentication code among them, end early when stdout is
+  # captured), then `signin`, whose stdout is the session line. `account add` is repeated whole (address, email, Secret Key, password,
+  # code) until an account is registered; once it is, only `signin` (password, code) is.
+  local attempt=0 what
+  while (( ++attempt <= 3 )); do
+    if ! _spark_op_has_account; then
+      _spark_op account add <"$(_spark_seam SPARK_TTY /dev/tty)" >&9 2>&9 || _warn "1Password: adding the account did not complete"
+    fi
+    if _spark_op_has_account; then
+      _spark_op_signin_capture signin || _warn "1Password: sign-in did not complete"
+    fi
+    _spark_op_signed_in && break
+    (( attempt < 3 )) || break
+    if _spark_op_has_account; then what="your password and authentication code"; else what="the sign-in address, your email, the Secret Key, your password and the authentication code"; fi
+    _spark_tty_open
+    # GUARD: spark-op-signin-retry a failed sign-in offers another attempt (default yes, three at most) and says what will be asked again; a no, or the third failure, continues without 1Password as before.
+    ans="$(_spark_ask "1Password: not signed in. Try again? You will be asked for ${what} again [Y/n]: ")"
+    case "$ans" in n|N|no|NO|No) break ;; esac
+    # GUARD-END: spark-op-signin-retry
+  done
   if _spark_op_signed_in; then _ok "1Password: signed in"; else _warn "1Password: not signed in; the forge URL, token and key will not be read from it"; fi
   return 0
 }
@@ -1384,6 +1398,35 @@ _spark_write_private(){  # _spark_write_private <path>
 }
 
 # Register <pubkey file> on the forge through its API, with the token on stdin (curl -K -). rc 0 registered or already there, 1 not.
+# The forge holds a DIFFERENT key under this machine's title. What to do depends on what 1Password holds for the same name (the vault item is
+# named by the title): "delete the forge entry" is right only when the key on this disk IS the stored one; when the vault holds another key,
+# that forge entry is the registered copy of it, and the key to remove is the LOCAL one (it is then restored from the vault on the next run).
+_spark_pub_fpr(){  # _spark_pub_fpr <public key line> → SHA256:… (empty when it is not a key)
+  local out fp="" _a _b
+  # 2>/dev/null: a line that is not a key gives an empty fingerprint, which the caller words.
+  out="$(printf '%s\n' "$1" | as_user_piped ssh-keygen -l -f - 2>/dev/null)" || out=""
+  read -r _a fp _b <<<"$out" || fp=""
+  printf '%s' "$fp"
+}
+_spark_key_collision_advice(){  # _spark_key_collision_advice <title> <local public key line> <local public key file>
+  local title="$1" lpub="$2" pubf="$3" vpub="" vfp lfp keyfile="${3%.pub}"
+  # 2>/dev/null: no vault, no sign-in or no item is "the vault holds nothing"; op's message would only name the reference.
+  if _spark_op_signed_in && _spark_op_vault; then vpub="$(_spark_op_read "$title" id_ed25519.pub 2>/dev/null | head -n 1)" || vpub=""; fi
+  lfp="$(_spark_pub_fpr "$lpub")"; vfp="$(_spark_pub_fpr "$vpub")"
+  # GUARD: spark-collision-advice when 1Password holds a DIFFERENT key for this machine, the forge entry is that key's registered copy: the advice is to remove the LOCAL key and re-run (it is restored), never to delete the forge entry.
+  if [[ -n "$vfp" && -n "$lfp" && "$vfp" != "$lfp" ]]; then
+    _warn "the forge already has a key titled '${title}', and it is not the key on this disk (${lfp})."
+    _warn "1Password holds this machine's key (item ${title}, ${vfp}): that forge entry is its registered copy, so do NOT delete it."
+    _warn "Remove the key on this disk and re-run; spark restores the one from 1Password:  rm -f ${keyfile} ${pubf}"
+    return 0
+  fi
+  # GUARD-END: spark-collision-advice
+  if [[ -n "$vfp" && "$vfp" == "$lfp" ]]; then
+    _warn "the forge has a different key titled '${title}', but 1Password's copy matches the key on this disk (${lfp}): the forge entry is stale. Delete it in Settings → SSH Keys, then re-run."
+    return 0
+  fi
+  _warn "a DIFFERENT key titled '${title}' is on the forge account (a rebuilt host?). Before deleting it: if 1Password holds this machine's key, remove the key on this disk (rm -f ${keyfile} ${pubf}) and re-run to restore that one instead. Otherwise delete the forge entry in Settings → SSH Keys, then re-run."
+}
 _spark_forge_register_key(){  # _spark_forge_register_key <api base https://host[:port]> <pubkey file> <title>
   local api="$1" pubf="$2" title="$3" body code pub keytype keyb64 list
   pub="$(as_user cat -- "$pubf")" || return 1
@@ -1403,7 +1446,7 @@ _spark_forge_register_key(){  # _spark_forge_register_key <api base https://host
       if printf '%s' "$list" | as_user_piped jq -e --arg k "${keytype} ${keyb64}" '[.[] | (.key | split(" ") | .[0:2] | join(" "))] | index($k) != null' >/dev/null 2>&1; then
         _ok "the ssh key '${title}' is already registered on ${api}"; return 0
       fi
-      _warn "a DIFFERENT key titled '${title}' is on the forge account (a rebuilt host?): delete it in Settings → SSH Keys, then re-run"; return 1 ;;
+      _spark_key_collision_advice "$title" "$pub" "$pubf"; return 1 ;;
     401|403) _warn "the forge rejected the token (HTTP ${code}); the key was not registered"; return 1 ;;
     *) _warn "the forge did not accept the key registration (HTTP ${code})"; return 1 ;;
   esac
